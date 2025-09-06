@@ -2,6 +2,7 @@ import React from 'react';
 import { GeneratorConfig } from '../utils/dataGenerator';
 import { ModelConfig } from '../utils/logisticRegression';
 import { PRESETS, generateShareUrl } from '../utils/presets';
+import { HelpTooltip, DataGenerationHelp, ModelTrainingHelp, UncertaintyHelp, PresetsHelp } from './HelpTooltip';
 
 interface ControlPanelProps {
   dataConfig: GeneratorConfig;
@@ -152,12 +153,14 @@ interface CollapsibleSectionProps {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  helpContent?: React.ReactNode;
 }
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ 
   title, 
   children, 
-  defaultOpen = true 
+  defaultOpen = true,
+  helpContent
 }) => {
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
 
@@ -167,7 +170,18 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full p-3 text-left text-sm font-medium text-neutral-200 hover:bg-neutral-800 flex items-center justify-between"
       >
-        {title}
+        <div className="flex items-center gap-2">
+          {title}
+          {helpContent && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <HelpTooltip 
+                title={title} 
+                content={helpContent}
+                size="lg"
+              />
+            </div>
+          )}
+        </div>
         <span className={`transform transition-transform ${isOpen ? 'rotate-90' : ''}`}>
           ›
         </span>
@@ -217,7 +231,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       <h1 className="text-lg font-bold text-white mb-6">StatML Lab</h1>
       
       <div className="space-y-4">
-        <CollapsibleSection title="Presets & Sharing">
+        <CollapsibleSection 
+          title="Presets & Sharing"
+          helpContent={<PresetsHelp />}
+        >
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium text-neutral-200 block mb-2">Quick Presets</label>
@@ -241,7 +258,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Data Generation">
+        <CollapsibleSection 
+          title="Data Generation"
+          helpContent={<DataGenerationHelp />}
+        >
           <Select
             label="Distribution"
             value={dataConfig.distribution}
@@ -305,7 +325,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </Button>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Model Training">
+        <CollapsibleSection 
+          title="Model Training"
+          helpContent={<ModelTrainingHelp />}
+        >
           <Slider
             label="Regularization (λ)"
             value={Math.log10(modelConfig.lambda)}
@@ -365,7 +388,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Uncertainty Analysis">
+        <CollapsibleSection 
+          title="Uncertainty Analysis"
+          helpContent={<UncertaintyHelp />}
+        >
           <Slider
             label="Repeat Runs"
             value={uncertaintyConfig.repeatRuns}

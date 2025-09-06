@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { HelpTooltip } from './HelpTooltip';
 
 interface BootstrapHistogramProps {
   accuracies: number[];
@@ -153,9 +154,47 @@ export const BootstrapHistogram: React.FC<BootstrapHistogramProps> = ({
 
   }, [accuracies, width, height, confidenceInterval]);
 
+  const bootstrapHelp = (
+    <div className="space-y-3">
+      <div>
+        <strong className="text-blue-300">What is Bootstrap?</strong>
+        <p>Resamples your dataset with replacement many times to estimate the uncertainty in your accuracy measurement.</p>
+      </div>
+      
+      <div>
+        <strong className="text-orange-300">What you see:</strong>
+        <ul className="list-disc list-inside mt-1 space-y-1">
+          <li><strong>Blue bars:</strong> Frequency of different accuracy values</li>
+          <li><strong>Green line:</strong> Mean accuracy across all samples</li>
+          <li><strong>Red dashed lines:</strong> 95% confidence interval bounds</li>
+        </ul>
+      </div>
+      
+      <div>
+        <strong className="text-green-300">Interpretation:</strong>
+        <ul className="list-disc list-inside mt-1 space-y-1">
+          <li><strong>Narrow distribution:</strong> Confident about performance</li>
+          <li><strong>Wide distribution:</strong> Uncertain about true accuracy</li>
+          <li><strong>CI width:</strong> Shows precision of your estimate</li>
+        </ul>
+      </div>
+      
+      <div className="bg-neutral-700 p-2 rounded text-xs">
+        <strong>💡 Key insight:</strong> Larger datasets typically produce narrower confidence intervals (more certainty).
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      <h3 className="text-sm font-medium text-neutral-200 mb-2">Bootstrap Accuracy Distribution</h3>
+      <div className="flex items-center gap-2 mb-2">
+        <h3 className="text-sm font-medium text-neutral-200">Bootstrap Accuracy Distribution</h3>
+        <HelpTooltip
+          title="🔄 Bootstrap Uncertainty"
+          content={bootstrapHelp}
+          size="lg"
+        />
+      </div>
       <canvas
         ref={canvasRef}
         className="border border-neutral-700 rounded bg-neutral-900"

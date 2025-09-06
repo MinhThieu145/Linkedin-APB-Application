@@ -4,6 +4,7 @@ import { PlotCanvas } from './components/PlotCanvas';
 import { LossSparkline } from './components/LossSparkline';
 import { BootstrapHistogram } from './components/BootstrapHistogram';
 import { StatsPanel } from './components/StatsPanel';
+import { HelpTooltip, AppOverviewHelp } from './components/HelpTooltip';
 import { generateData, GeneratorConfig } from './utils/dataGenerator';
 import { ModelConfig, ModelState } from './utils/logisticRegression';
 import { useTrainingWorker } from './hooks/useTrainingWorker';
@@ -186,6 +187,15 @@ function App() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
+      {/* App Overview Help - Top Right Corner */}
+      <div className="absolute top-4 right-4 z-50">
+        <HelpTooltip
+          title="📚 StatML Lab Guide"
+          content={<AppOverviewHelp />}
+          size="lg"
+        />
+      </div>
+      
       <div className="grid h-full grid-cols-[360px_1fr] gap-4 p-4">
         {/* Left Panel - Controls */}
         <ControlPanel
@@ -209,6 +219,47 @@ function App() {
         <div className="flex flex-col gap-4 min-h-0 max-h-full">
           {/* Main Plot Area - Fixed height to prevent overflow */}
           <div className="relative flex-1 min-h-[350px] max-h-[450px] flex items-center justify-center">
+            {/* Visualization Help */}
+            <div className="absolute top-2 left-2 z-40">
+              <HelpTooltip
+                title="📈 Understanding the Plot"
+                content={
+                  <div className="space-y-3">
+                    <div>
+                      <strong className="text-blue-300">What you see:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li><strong>Blue dots:</strong> Class 0 data points</li>
+                        <li><strong>Orange dots:</strong> Class 1 data points</li>
+                        <li><strong>White line:</strong> Decision boundary (p = 0.5)</li>
+                        <li><strong>Background colors:</strong> Probability heatmap</li>
+                        <li><strong>Gray lines:</strong> Uncertainty bounds from repeat training</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <strong className="text-orange-300">Decision Boundary:</strong>
+                      <p>The line where the model's confidence is 50-50. Points are classified based on which side they fall on.</p>
+                    </div>
+                    
+                    <div>
+                      <strong className="text-green-300">Uncertainty Bounds:</strong>
+                      <p>Gray lines show how the boundary varies across different training runs. Wider spread = higher variance.</p>
+                    </div>
+                    
+                    <div>
+                      <strong className="text-purple-300">Loss Sparkline:</strong>
+                      <p>Green line in top-right shows training loss decreasing over epochs. Helps monitor convergence.</p>
+                    </div>
+                    
+                    <div className="bg-neutral-700 p-2 rounded text-xs">
+                      <strong>💡 Pro tip:</strong> Watch how the boundary changes with different regularization values!
+                    </div>
+                  </div>
+                }
+                size="lg"
+              />
+            </div>
+            
             <PlotCanvas
               dataset={dataset}
               model={model}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ModelState } from '../utils/logisticRegression';
+import { HelpTooltip } from './HelpTooltip';
 
 interface StatsPanelProps {
   model: ModelState | null;
@@ -19,9 +20,50 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
   const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
   const formatNumber = (value: number, decimals: number = 3) => value.toFixed(decimals);
 
+  const statsHelp = (
+    <div className="space-y-3">
+      <div>
+        <strong className="text-blue-300">Performance Metrics:</strong>
+        <ul className="list-disc list-inside mt-1 space-y-1">
+          <li><strong>Train Accuracy:</strong> How well the model fits the training data</li>
+          <li><strong>Val Accuracy:</strong> How well it generalizes to new data</li>
+          <li><strong>Gap:</strong> Large difference suggests overfitting</li>
+        </ul>
+      </div>
+      
+      <div>
+        <strong className="text-orange-300">Model Parameters:</strong>
+        <ul className="list-disc list-inside mt-1 space-y-1">
+          <li><strong>Bias (w₀):</strong> Shifts the decision boundary</li>
+          <li><strong>Weights (w₁, w₂):</strong> Determine boundary slope and orientation</li>
+        </ul>
+      </div>
+      
+      <div>
+        <strong className="text-green-300">Uncertainty Analysis:</strong>
+        <ul className="list-disc list-inside mt-1 space-y-1">
+          <li><strong>Mean Accuracy:</strong> Average performance across bootstrap samples</li>
+          <li><strong>95% CI:</strong> Range where true accuracy likely lies</li>
+          <li><strong>Std Deviation:</strong> Spread of accuracy estimates</li>
+        </ul>
+      </div>
+      
+      <div className="bg-neutral-700 p-2 rounded text-xs">
+        <strong>💡 Watch for:</strong> Large train-val gaps (overfitting) and wide confidence intervals (high uncertainty).
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg h-full overflow-y-auto min-h-0">
-      <h3 className="text-sm font-medium text-neutral-200 mb-4">Model Statistics</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className="text-sm font-medium text-neutral-200">Model Statistics</h3>
+        <HelpTooltip
+          title="📊 Understanding the Numbers"
+          content={statsHelp}
+          size="lg"
+        />
+      </div>
       
       <div className="space-y-4 text-sm">
         {/* Dataset Info */}
