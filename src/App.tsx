@@ -211,35 +211,55 @@ function App() {
               <HelpTooltip
                 title="📈 Understanding the Plot"
                 content={
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div>
-                      <strong className="text-blue-300">What you see:</strong>
-                      <ul className="list-disc list-inside mt-1 space-y-1">
-                        <li><strong>Blue dots:</strong> Class 0 data points</li>
-                        <li><strong>Orange dots:</strong> Class 1 data points</li>
-                        <li><strong>White line:</strong> Decision boundary (p = 0.5)</li>
-                        <li><strong>Background colors:</strong> Probability heatmap</li>
-                        <li><strong>Gray lines:</strong> Uncertainty bounds from repeat training</li>
-                      </ul>
+                      <strong className="text-blue-300">Reading the main plot:</strong>
+                      <p>This is where the magic happens! You're looking at a 2D map where the computer tries to draw a line separating two types of dots.</p>
                     </div>
                     
                     <div>
-                      <strong className="text-orange-300">Decision Boundary:</strong>
-                      <p>The line where the model's confidence is 50-50. Points are classified based on which side they fall on.</p>
+                      <strong className="text-orange-300">What each element means:</strong>
+                      <div className="space-y-2 mt-2">
+                        <div>
+                          <strong>Blue dots:</strong>
+                          <p className="text-sm">Class 0 data points - these are the examples we want the computer to recognize as "type blue"</p>
+                        </div>
+                        <div>
+                          <strong>Orange dots:</strong>
+                          <p className="text-sm">Class 1 data points - these are the examples we want the computer to recognize as "type orange"</p>
+                        </div>
+                        <div>
+                          <strong>White line (Decision Boundary):</strong>
+                          <p className="text-sm">The computer's best guess for separating the colors. It says "Everything on this side is probably blue, everything on that side is probably orange."</p>
+                        </div>
+                        <div>
+                          <strong>Background colors:</strong>
+                          <p className="text-sm">Shows the computer's confidence. Darker blue = "I'm very sure this is blue area", lighter colors = "I'm not so sure"</p>
+                        </div>
+                        <div>
+                          <strong>Gray lines (after uncertainty analysis):</strong>
+                          <p className="text-sm">Multiple decision lines from different training attempts. Close together = stable, spread apart = unstable results</p>
+                        </div>
+                      </div>
                     </div>
                     
                     <div>
-                      <strong className="text-green-300">Uncertainty Bounds:</strong>
-                      <p>Gray lines show how the boundary varies across different training runs. Wider spread = higher variance.</p>
+                      <strong className="text-green-300">What to watch for:</strong>
+                      <div className="text-sm space-y-1">
+                        <p><strong>Good separation:</strong> White line cleanly divides the colors</p>
+                        <p><strong>Overfitting:</strong> Line tries too hard to catch every single dot</p>
+                        <p><strong>Underfitting:</strong> Line ignores obvious patterns</p>
+                        <p><strong>High uncertainty:</strong> Gray lines spread all over the place</p>
+                      </div>
                     </div>
                     
                     <div>
-                      <strong className="text-purple-300">Loss Sparkline:</strong>
-                      <p>Green line in top-right shows training loss decreasing over epochs. Helps monitor convergence.</p>
+                      <strong className="text-purple-300">The green sparkline (top-right):</strong>
+                      <p>Shows the "learning loss" - how much the computer's guesses are improving. Should go down over time. If it stops going down, the computer has learned as much as it can.</p>
                     </div>
                     
                     <div className="bg-neutral-700 p-2 rounded text-xs">
-                      <strong>💡 Pro tip:</strong> Watch how the boundary changes with different regularization values!
+                      <strong>💡 Try this:</strong> Train a model on moons data with very low regularization (0.0001) - watch how the straight line struggles with the curved pattern! The computer can only draw straight lines but the pattern is curved.
                     </div>
                   </div>
                 }

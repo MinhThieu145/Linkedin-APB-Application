@@ -2,11 +2,185 @@
 
 ## 📋 Overview
 
-StatML Lab is a comprehensive, modern web application designed for interactive machine learning education. It demonstrates key concepts in statistical learning including bias-variance tradeoff, regularization effects, and uncertainty quantification through an intuitive visual interface.
+StatML Lab is a comprehensive, interactive web application designed specifically for machine learning education. It provides a complete visual learning environment where students can experiment with classification algorithms, explore bias-variance tradeoffs, and understand statistical uncertainty through hands-on experimentation.
 
-**Core Purpose**: Educational tool for students to understand logistic regression, data distribution effects, regularization impact, and statistical uncertainty visualization.
+### **Educational Mission**
+This application transforms abstract machine learning concepts into tangible, visual experiences. Students can:
+- Generate synthetic datasets with controllable characteristics
+- Train logistic regression models with different parameters
+- Visualize decision boundaries and probability surfaces
+- Explore model uncertainty through repeat sampling and bootstrap methods
+- Understand the practical implications of regularization and sample size
 
-**Tech Stack**: React 18 + TypeScript + Tailwind CSS + Canvas 2D + Web Workers
+### **Core Learning Objectives**
+1. **Classification Fundamentals**: Understanding how linear classifiers separate data
+2. **Bias-Variance Tradeoff**: Visualizing how regularization affects model complexity
+3. **Sample Size Effects**: Seeing how more data reduces model uncertainty
+4. **Statistical Uncertainty**: Quantifying confidence in model performance
+5. **Hyperparameter Impact**: Understanding how different settings affect results
+
+### **Target Audience**
+- **Students**: Machine learning and statistics courses (undergraduate/graduate)
+- **Educators**: Classroom demonstrations and interactive lectures
+- **Self-learners**: Independent study and concept reinforcement
+- **Professionals**: Interview preparation and concept review
+
+### **Technical Architecture**
+**Frontend Stack**: React 18 + TypeScript + Tailwind CSS + Canvas 2D + Web Workers
+**Performance**: Non-blocking UI with background computation
+**Accessibility**: Keyboard navigation, screen reader support, focus management
+**Browser Support**: Modern browsers with ES2017+ and Web Worker support
+
+---
+
+## 🎓 Application Functionality & Features
+
+### **1. Quick Presets System**
+The application includes four carefully designed preset scenarios that demonstrate key machine learning concepts:
+
+#### **"Small & Noisy" Preset**
+- **Purpose**: Demonstrates high variance scenarios
+- **Configuration**: 100 samples, high noise (σ=1.2), weak regularization (λ=0.001)
+- **Learning Goal**: Shows how limited data and high noise lead to unstable models
+- **Expected Behavior**: Decision boundaries vary significantly between training runs
+
+#### **"Bigger Dataset" Preset**
+- **Purpose**: Shows variance reduction with more data
+- **Configuration**: 800 samples, moderate noise (σ=0.6), standard regularization (λ=0.01)
+- **Learning Goal**: Demonstrates how larger sample sizes stabilize model predictions
+- **Expected Behavior**: Tighter uncertainty bounds and more confident predictions
+
+#### **"High Regularization" Preset**
+- **Purpose**: Illustrates bias-variance tradeoff
+- **Configuration**: 300 samples, moderate noise (σ=0.8), strong regularization (λ=1.0), moons distribution
+- **Learning Goal**: Shows how regularization simplifies models and reduces variance
+- **Expected Behavior**: Straighter decision boundaries, less overfitting
+
+#### **"Low Regularization" Preset**
+- **Purpose**: Demonstrates overfitting risks
+- **Configuration**: 200 samples, low noise (σ=0.5), minimal regularization (λ=0.0001), moons distribution
+- **Learning Goal**: Shows potential for overfitting with complex, flexible models
+- **Expected Behavior**: Curved boundaries that may follow noise rather than signal
+
+### **2. Data Generation System**
+
+#### **Distribution Types**
+
+**Blobs (Gaussian Clusters)**
+- **Mathematical Foundation**: Two bivariate normal distributions
+- **Class 0 Center**: (-1, -1) with controllable standard deviation
+- **Class 1 Center**: (1, 1) with controllable standard deviation
+- **Use Case**: Linearly separable data that's easy to classify
+- **Educational Value**: Shows how noise affects separability
+
+**Moons (Curved Patterns)**
+- **Mathematical Foundation**: Two semicircular arcs with added Gaussian noise
+- **Class 0**: Upper semicircle from 0 to π
+- **Class 1**: Lower semicircle, inverted and offset
+- **Use Case**: Non-linearly separable data that challenges linear classifiers
+- **Educational Value**: Demonstrates limitations of linear models
+
+#### **Controllable Parameters**
+
+**Sample Size (n: 50-1000)**
+- **Purpose**: Controls the amount of training data
+- **Impact on Learning**: 
+  - Small n (50-100): High variance, uncertain predictions
+  - Medium n (200-500): Balanced bias-variance
+  - Large n (800-1000): Low variance, stable predictions
+- **Statistical Principle**: Law of large numbers
+
+**Class Balance (0.1-0.9)**
+- **Purpose**: Controls proportion of Class 1 samples
+- **Values**: 0.1 = 10% Class 1, 0.5 = balanced, 0.9 = 90% Class 1
+- **Impact**: Imbalanced data can bias predictions toward majority class
+- **Real-world Relevance**: Many real datasets have class imbalance
+
+**Noise Level (σ: 0.1-1.5)**
+- **For Blobs**: Standard deviation of Gaussian distributions
+- **For Moons**: Magnitude of random perturbations
+- **Impact**: Higher noise makes classification more challenging
+- **Educational Value**: Shows robustness vs. sensitivity tradeoffs
+
+**Random Resampling**
+- **Mechanism**: Generates new random seed for each resample
+- **Purpose**: Demonstrates stochastic nature of machine learning
+- **Educational Value**: Shows how different samples affect model training
+
+### **3. Model Training System**
+
+#### **Algorithm: Logistic Regression**
+- **Mathematical Model**: Linear combination of features passed through sigmoid function
+- **Decision Boundary**: Straight line where predicted probability = 0.5
+- **Optimization**: Gradient descent with L2 regularization
+- **Loss Function**: Cross-entropy + L2 penalty term
+
+#### **Hyperparameter Controls**
+
+**Regularization Strength (λ)**
+- **Range**: 10⁻⁴ to 10¹ (logarithmic scale)
+- **Purpose**: Controls model complexity and overfitting
+- **Mathematical Effect**: Adds penalty term λ||w||² to loss function
+- **Practical Impact**:
+  - Low λ (0.0001): Flexible model, may overfit
+  - Medium λ (0.01): Balanced complexity
+  - High λ (1.0): Simple model, may underfit
+
+**Learning Rate (η)**
+- **Options**: 0.01, 0.05, 0.1
+- **Purpose**: Controls step size in gradient descent
+- **Impact**: 
+  - Too low: Slow convergence
+  - Too high: Unstable training, overshooting
+  - Just right: Smooth, efficient convergence
+
+**Training Epochs**
+- **Options**: 50, 100, 200
+- **Purpose**: Number of complete passes through training data
+- **Impact**: More epochs allow better convergence but risk overfitting
+
+#### **Training Process**
+1. **Data Preprocessing**: Feature standardization (zero mean, unit variance)
+2. **Train/Validation Split**: 80% training, 20% validation
+3. **Weight Initialization**: Small random values near zero
+4. **Gradient Descent**: Iterative weight updates
+5. **Progress Monitoring**: Real-time loss and accuracy tracking
+
+### **4. Uncertainty Analysis System**
+
+#### **Repeat Training (Variance Estimation)**
+- **Purpose**: Quantifies model instability across different datasets
+- **Process**: Train multiple models on bootstrap samples of original data
+- **Visualization**: Overlapping decision boundaries (gray lines)
+- **Interpretation**: 
+  - Tight boundaries = low variance, stable model
+  - Spread boundaries = high variance, unstable model
+
+#### **Bootstrap Confidence Intervals**
+- **Statistical Method**: Bootstrap resampling with replacement
+- **Purpose**: Estimates uncertainty in accuracy measurement
+- **Process**: 
+  1. Resample dataset 300-1000 times with replacement
+  2. Calculate accuracy on each resample using trained model
+  3. Compute 95% confidence interval using percentile method
+- **Visualization**: Histogram with confidence interval bounds
+- **Interpretation**: Narrow CI = confident estimate, Wide CI = uncertain estimate
+
+### **5. Visualization System**
+
+#### **Main Plot Canvas**
+- **Technology**: HTML5 Canvas for high-performance rendering
+- **Elements**:
+  - **Data Points**: Blue circles (Class 0), Orange circles (Class 1)
+  - **Decision Boundary**: White line at probability = 0.5
+  - **Probability Heatmap**: Background colors showing model confidence
+  - **Uncertainty Bounds**: Gray lines from repeat training
+- **Interactions**: Real-time updates during training
+
+#### **Statistical Displays**
+- **Bootstrap Histogram**: Distribution of accuracy estimates
+- **Stats Panel**: Numerical summaries and model parameters
+- **Loss Sparkline**: Real-time training progress indicator
 
 ---
 
