@@ -116,7 +116,6 @@ const [confidenceInterval, setConfidenceInterval] = useState()     // Statistica
 ```
 
 **Key Features**:
-- **URL State Persistence**: Loads configuration from URL params on mount
 - **Reactive Data Generation**: Dataset regenerates when config changes
 - **Training Management**: Handles model training, pause, reset operations
 - **Uncertainty Analysis**: Coordinates repeat training and bootstrap sampling
@@ -127,7 +126,7 @@ const [confidenceInterval, setConfidenceInterval] = useState()     // Statistica
 ┌─────────────────────────────────────────────────────────────┐
 │ [ControlPanel: 360px] │ [Main Content: flex]                │
 │                       │ ┌─────────────────────────────────┐ │
-│ - Presets & Sharing   │ │ PlotCanvas (800x500)            │ │
+│ - Quick Presets       │ │ PlotCanvas (750x400)            │ │
 │ - Data Generation     │ │ + LossSparkline overlay         │ │
 │ - Model Training      │ └─────────────────────────────────┘ │
 │ - Uncertainty Analysis│ ┌─────────────┬─────────────────┐   │
@@ -154,17 +153,16 @@ const [confidenceInterval, setConfidenceInterval] = useState()     // Statistica
 ```
 
 **Sections**:
-1. **Presets & Sharing**: Quick configuration presets + URL sharing
-2. **Data Generation**: Distribution type, sample size, balance, noise, seed control
+1. **Quick Presets**: Educational scenario configurations
+2. **Data Generation**: Distribution type, sample size, balance, noise control
 3. **Model Training**: Regularization, learning rate, epochs, train/pause/reset
 4. **Uncertainty Analysis**: Repeat runs and bootstrap sample configuration
 
 **Key Features**:
 - **Logarithmic Sliders**: Regularization parameter uses log10 scale
-- **Seed Locking**: Checkbox to enable/disable reproducible results
 - **Real-time Updates**: All changes immediately trigger parent callbacks
-- **Share URLs**: Generates base64-encoded shareable links
 - **Preset System**: One-click configuration for educational scenarios
+- **Random Resampling**: Generate new data variations on demand
 
 ### `src/components/PlotCanvas.tsx` 🎨
 **Purpose**: Main visualization component using HTML5 Canvas for high-performance rendering.
@@ -285,7 +283,7 @@ const [confidenceInterval, setConfidenceInterval] = useState()     // Statistica
 - **Convergence**: Fixed epoch count (50-200 typical)
 
 ### `src/utils/presets.ts`
-**Purpose**: Predefined configurations and URL state management.
+**Purpose**: Predefined configurations for educational scenarios.
 
 **Educational Presets**:
 1. **"Small & Noisy"**: Demonstrates high variance with limited data
@@ -293,11 +291,10 @@ const [confidenceInterval, setConfidenceInterval] = useState()     // Statistica
 3. **"High Regularization"**: Illustrates bias increase, variance decrease
 4. **"Low Regularization"**: Potential overfitting demonstration
 
-**URL Sharing System**:
-- **Compression**: Base64-encoded JSON with abbreviated keys
-- **Backwards Compatibility**: Graceful fallback for malformed URLs
-- **Selective Encoding**: Only non-default values included
-- **Browser Integration**: Uses URLSearchParams API
+**Features**:
+- **Quick Configuration**: Instant loading of educational scenarios
+- **Comparative Analysis**: Easy switching between different setups
+- **Educational Focus**: Each preset demonstrates specific ML concepts
 
 ### `src/utils/random.ts`
 **Purpose**: High-quality seedable pseudorandom number generator.

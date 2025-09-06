@@ -128,7 +128,7 @@ export const DataGenerationHelp = () => (
     </div>
     
     <div className="bg-neutral-700 p-2 rounded text-xs">
-      <strong>💡 Try this:</strong> Generate data, then hit "Resample" - notice how the pattern changes slightly each time.
+      <strong>💡 Try this:</strong> Generate data, then hit "Resample" - notice how the pattern changes each time due to randomness.
     </div>
   </div>
 );
@@ -200,8 +200,8 @@ export const PresetsHelp = () => (
     </div>
     
     <div>
-      <strong className="text-orange-300">Share Links:</strong>
-      <p>Encode your exact settings in a URL. Perfect for homework, discussions, or reproducing interesting results.</p>
+      <strong className="text-orange-300">How to use:</strong>
+      <p>Click any preset to instantly load the configuration. This gives you starting points for exploring different ML scenarios and comparing results.</p>
     </div>
     
     <div className="bg-neutral-700 p-2 rounded text-xs">
@@ -235,7 +235,7 @@ export const AppOverviewHelp = () => (
         <li>Train model (experiment with regularization)</li>
         <li>Run uncertainty analysis (see variance and confidence)</li>
         <li>Try different scenarios using presets</li>
-        <li>Share interesting findings with others</li>
+        <li>Compare results across different configurations</li>
       </ol>
     </div>
     

@@ -41,7 +41,7 @@ The application will be available at `http://localhost:3000`.
 ### 1. **Data Generation**
 - Choose between **Blobs** (two Gaussians) or **Moons** (two arcs) distributions
 - Adjust sample size (50-1000), class balance (0.1-0.9), and noise level
-- Lock seed for reproducible results or resample for new data
+- Resample for new random data variations
 
 ### 2. **Model Training**
 - Configure regularization strength (λ), learning rate (η), and epochs
@@ -55,10 +55,10 @@ The application will be available at `http://localhost:3000`.
 - **Bootstrap samples**: Generate confidence intervals for accuracy estimates
 - View histogram of bootstrap accuracies with 95% CI
 
-### 4. **Presets & Sharing**
-- Use quick presets: "Small & Noisy", "Bigger Dataset", "High/Low Regularization"
-- Copy shareable URLs to reproduce exact configurations
-- Perfect for classroom demonstrations and homework assignments
+### 4. **Quick Presets**
+- Use preset scenarios: "Small & Noisy", "Bigger Dataset", "High/Low Regularization"
+- Instantly load configurations for exploring different ML scenarios
+- Perfect for classroom demonstrations and comparative analysis
 
 ## What to Notice
 

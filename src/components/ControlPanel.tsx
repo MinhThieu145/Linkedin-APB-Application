@@ -1,7 +1,7 @@
 import React from 'react';
 import { GeneratorConfig } from '../utils/dataGenerator';
 import { ModelConfig } from '../utils/logisticRegression';
-import { PRESETS, generateShareUrl } from '../utils/presets';
+import { PRESETS } from '../utils/presets';
 import { HelpTooltip, DataGenerationHelp, ModelTrainingHelp, UncertaintyHelp, PresetsHelp } from './HelpTooltip';
 
 interface ControlPanelProps {
@@ -211,50 +211,26 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   isTraining,
   canTrain
 }) => {
-  const handleShareLink = () => {
-    const url = generateShareUrl({ dataConfig, modelConfig });
-    navigator.clipboard.writeText(url).then(() => {
-      alert('Share link copied to clipboard!');
-    }).catch(() => {
-      // Fallback for browsers that don't support clipboard API
-      const textArea = document.createElement('textarea');
-      textArea.value = url;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      alert('Share link copied to clipboard!');
-    });
-  };
   return (
     <div className="w-80 h-full bg-neutral-900 border-r border-neutral-700 p-4 overflow-y-auto min-h-0 scrollbar-dark">
       <h1 className="text-lg font-bold text-white mb-6">StatML Lab</h1>
       
       <div className="space-y-4">
         <CollapsibleSection 
-          title="Presets & Sharing"
+          title="Quick Presets"
           helpContent={<PresetsHelp />}
         >
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-neutral-200 block mb-2">Quick Presets</label>
-              <div className="grid grid-cols-2 gap-2">
-                {PRESETS.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => onApplyPreset(preset.dataConfig, preset.modelConfig)}
-                    className="p-2 text-xs bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded border border-neutral-600 transition-colors"
-                    title={preset.description}
-                  >
-                    {preset.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <Button onClick={handleShareLink} variant="secondary" size="sm">
-              📋 Copy Share Link
-            </Button>
+          <div className="grid grid-cols-2 gap-2">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => onApplyPreset(preset.dataConfig, preset.modelConfig)}
+                className="p-2 text-xs bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded border border-neutral-600 transition-colors"
+                title={preset.description}
+              >
+                {preset.name}
+              </button>
+            ))}
           </div>
         </CollapsibleSection>
 
@@ -301,24 +277,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             tooltip={dataConfig.distribution === 'blobs' ? 'Standard deviation of Gaussians' : 'Noise level for moon shapes'}
           />
           
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="seedLock"
-              checked={dataConfig.seed !== Date.now()}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  onDataConfigChange({ seed: 42 });
-                } else {
-                  onDataConfigChange({ seed: Date.now() });
-                }
-              }}
-              className="rounded border-neutral-600 bg-neutral-800 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="seedLock" className="text-sm text-neutral-200">
-              Lock seed
-            </label>
-          </div>
           
           <Button onClick={onResample} variant="secondary">
             Resample Data

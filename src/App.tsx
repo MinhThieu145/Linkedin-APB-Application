@@ -8,7 +8,6 @@ import { HelpTooltip, AppOverviewHelp } from './components/HelpTooltip';
 import { generateData, GeneratorConfig } from './utils/dataGenerator';
 import { ModelConfig, ModelState } from './utils/logisticRegression';
 import { useTrainingWorker } from './hooks/useTrainingWorker';
-import { loadStateFromUrl } from './utils/presets';
 
 // Default configurations
 const DEFAULT_DATA_CONFIG: GeneratorConfig = {
@@ -36,18 +35,6 @@ function App() {
   const [modelConfig, setModelConfig] = useState<ModelConfig>(DEFAULT_MODEL_CONFIG);
   const [uncertaintyConfig, setUncertaintyConfig] = useState(DEFAULT_UNCERTAINTY_CONFIG);
 
-  // Load state from URL on mount
-  useEffect(() => {
-    const urlState = loadStateFromUrl();
-    if (urlState) {
-      if (urlState.dataConfig) {
-        setDataConfig(prev => ({ ...prev, ...urlState.dataConfig }));
-      }
-      if (urlState.modelConfig) {
-        setModelConfig(prev => ({ ...prev, ...urlState.modelConfig }));
-      }
-    }
-  }, []);
 
   // App states
   const [model, setModel] = useState<ModelState | null>(null);
@@ -110,7 +97,7 @@ function App() {
   }, []);
 
   const handleResample = useCallback(() => {
-    const newSeed = Date.now();
+    const newSeed = Math.floor(Math.random() * 1000000);
     setDataConfig(prev => ({ ...prev, seed: newSeed }));
   }, []);
 
