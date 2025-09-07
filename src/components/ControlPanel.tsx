@@ -20,6 +20,8 @@ interface ControlPanelProps {
   onReset: () => void;
   onRunUncertainty: () => void;
   onApplyPreset: (dataConfig: Partial<GeneratorConfig>, modelConfig: Partial<ModelConfig>) => void;
+  onTrainingDemo: () => void;
+  onUncertaintyDemo: () => void;
   isTraining: boolean;
   canTrain: boolean;
 }
@@ -111,6 +113,7 @@ interface ButtonProps {
   disabled?: boolean;
   variant?: 'primary' | 'secondary';
   size?: 'sm' | 'md';
+  className?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({ 
@@ -118,7 +121,8 @@ const Button: React.FC<ButtonProps> = ({
   onClick, 
   disabled = false, 
   variant = 'secondary',
-  size = 'md'
+  size = 'md',
+  className = ''
 }) => {
   const baseClasses = "font-medium rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-colors";
   const variantClasses = {
@@ -133,7 +137,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const classes = `
     ${baseClasses}
-    ${variantClasses[variant]}
+    ${className || variantClasses[variant]}
     ${sizeClasses[size]}
     ${disabled ? disabledClasses : ''}
   `.trim();
@@ -208,6 +212,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onReset,
   onRunUncertainty,
   onApplyPreset,
+  onTrainingDemo,
+  onUncertaintyDemo,
   isTraining,
   canTrain
 }) => {
@@ -320,29 +326,41 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             onChange={(value) => onModelConfigChange({ epochs: parseInt(value) })}
           />
           
-          <div className="flex space-x-2">
-            <Button
-              onClick={onTrain}
-              disabled={!canTrain || isTraining}
-              variant="primary"
-            >
-              {isTraining ? 'Training...' : 'Train'}
-            </Button>
+          <div className="space-y-2">
+            <div className="flex space-x-2">
+              <Button
+                onClick={onTrain}
+                disabled={!canTrain || isTraining}
+                variant="primary"
+              >
+                {isTraining ? 'Training...' : 'Train'}
+              </Button>
+              
+              <Button
+                onClick={onTrainingDemo}
+                variant="secondary"
+                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+              >
+                📋 Demo
+              </Button>
+            </div>
             
-            <Button
-              onClick={onPause}
-              disabled={!isTraining}
-              variant="secondary"
-            >
-              Pause
-            </Button>
-            
-            <Button
-              onClick={onReset}
-              variant="secondary"
-            >
-              Reset
-            </Button>
+            <div className="flex space-x-2">
+              <Button
+                onClick={onPause}
+                disabled={!isTraining}
+                variant="secondary"
+              >
+                Pause
+              </Button>
+              
+              <Button
+                onClick={onReset}
+                variant="secondary"
+              >
+                Reset
+              </Button>
+            </div>
           </div>
         </CollapsibleSection>
 
@@ -370,13 +388,23 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             tooltip="Number of bootstrap samples for confidence interval"
           />
           
-          <Button
-            onClick={onRunUncertainty}
-            variant="primary"
-            disabled={!canTrain}
-          >
-            Run Uncertainty Analysis
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              onClick={onRunUncertainty}
+              variant="primary"
+              disabled={!canTrain}
+            >
+              Run Uncertainty Analysis
+            </Button>
+            
+            <Button
+              onClick={onUncertaintyDemo}
+              variant="secondary"
+              className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+            >
+              📋 Demo
+            </Button>
+          </div>
         </CollapsibleSection>
       </div>
     </div>

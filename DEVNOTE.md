@@ -1,186 +1,673 @@
 # StatML Lab - Developer Documentation
 
-## 📋 Overview
+## 📋 Technical Overview
 
-StatML Lab is a comprehensive, interactive web application designed specifically for machine learning education. It provides a complete visual learning environment where students can experiment with classification algorithms, explore bias-variance tradeoffs, and understand statistical uncertainty through hands-on experimentation.
+StatML Lab is a React-based web application implementing interactive logistic regression training and visualization. The application demonstrates machine learning concepts through real-time visualization of training processes, decision boundaries, and statistical uncertainty.
 
-### **Educational Mission**
-This application transforms abstract machine learning concepts into tangible, visual experiences. Students can:
-- Generate synthetic datasets with controllable characteristics
-- Train logistic regression models with different parameters
-- Visualize decision boundaries and probability surfaces
-- Explore model uncertainty through repeat sampling and bootstrap methods
-- Understand the practical implications of regularization and sample size
-
-### **Core Learning Objectives**
-1. **Classification Fundamentals**: Understanding how linear classifiers separate data
-2. **Bias-Variance Tradeoff**: Visualizing how regularization affects model complexity
-3. **Sample Size Effects**: Seeing how more data reduces model uncertainty
-4. **Statistical Uncertainty**: Quantifying confidence in model performance
-5. **Hyperparameter Impact**: Understanding how different settings affect results
-
-### **Target Audience**
-- **Students**: Machine learning and statistics courses (undergraduate/graduate)
-- **Educators**: Classroom demonstrations and interactive lectures
-- **Self-learners**: Independent study and concept reinforcement
-- **Professionals**: Interview preparation and concept review
-
-### **Technical Architecture**
-**Frontend Stack**: React 18 + TypeScript + Tailwind CSS + Canvas 2D + Web Workers
-**Performance**: Non-blocking UI with background computation
-**Accessibility**: Keyboard navigation, screen reader support, focus management
-**Browser Support**: Modern browsers with ES2017+ and Web Worker support
+### **Technology Stack**
+- **Frontend**: React 18 + TypeScript + Tailwind CSS
+- **Visualization**: HTML5 Canvas 2D API + d3-scale for coordinate transformations
+- **Computation**: Web Workers for non-blocking ML training
+- **Build System**: Create React App with TypeScript configuration
+- **Styling**: Utility-first CSS with custom dark theme
 
 ---
 
-## 🎓 Application Functionality & Features
+## 🔧 Core Components & Architecture
 
-### **1. Quick Presets System**
-The application includes four carefully designed preset scenarios that demonstrate key machine learning concepts:
+### **Data Generation**
+- **Blobs**: Two bivariate Gaussian distributions at (-1,-1) and (1,1)
+- **Moons**: Two semicircular arcs with controllable noise
+- **Parameters**: Sample size (50-1000), class balance (0.1-0.9), noise level (0.1-1.5)
 
-#### **"Small & Noisy" Preset**
-- **Purpose**: Demonstrates high variance scenarios
-- **Configuration**: 100 samples, high noise (σ=1.2), weak regularization (λ=0.001)
-- **Learning Goal**: Shows how limited data and high noise lead to unstable models
-- **Expected Behavior**: Decision boundaries vary significantly between training runs
+### **Model Implementation**
+- **Algorithm**: Logistic regression with L2 regularization
+- **Optimization**: Gradient descent (batch, not stochastic)
+- **Features**: Standardized to zero mean, unit variance
+- **Validation**: 80/20 train/validation split
 
-#### **"Bigger Dataset" Preset**
-- **Purpose**: Shows variance reduction with more data
-- **Configuration**: 800 samples, moderate noise (σ=0.6), standard regularization (λ=0.01)
-- **Learning Goal**: Demonstrates how larger sample sizes stabilize model predictions
-- **Expected Behavior**: Tighter uncertainty bounds and more confident predictions
+### **Uncertainty Quantification**
+- **Repeat Training**: Bootstrap resampling for variance estimation
+- **Confidence Intervals**: Percentile method for accuracy uncertainty
+- **Visualization**: Overlapping decision boundaries and histogram displays
 
-#### **"High Regularization" Preset**
-- **Purpose**: Illustrates bias-variance tradeoff
-- **Configuration**: 300 samples, moderate noise (σ=0.8), strong regularization (λ=1.0), moons distribution
-- **Learning Goal**: Shows how regularization simplifies models and reduces variance
-- **Expected Behavior**: Straighter decision boundaries, less overfitting
+---
 
-#### **"Low Regularization" Preset**
-- **Purpose**: Demonstrates overfitting risks
-- **Configuration**: 200 samples, low noise (σ=0.5), minimal regularization (λ=0.0001), moons distribution
-- **Learning Goal**: Shows potential for overfitting with complex, flexible models
-- **Expected Behavior**: Curved boundaries that may follow noise rather than signal
+## 🎲 Data Generation Logic Deep Dive
 
-### **2. Data Generation System**
+This section explains the mathematical foundations and implementation details of the synthetic data generation system.
 
-#### **Distribution Types**
+### **1. Seedable Random Number Generation**
 
-**Blobs (Gaussian Clusters)**
-- **Mathematical Foundation**: Two bivariate normal distributions
-- **Class 0 Center**: (-1, -1) with controllable standard deviation
-- **Class 1 Center**: (1, 1) with controllable standard deviation
-- **Use Case**: Linearly separable data that's easy to classify
-- **Educational Value**: Shows how noise affects separability
+#### **Mulberry32 Algorithm Implementation**
+```typescript
+class SeededRandom {
+  random(): number {
+    let t = (this.seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+}
+```
 
-**Moons (Curved Patterns)**
-- **Mathematical Foundation**: Two semicircular arcs with added Gaussian noise
-- **Class 0**: Upper semicircle from 0 to π
-- **Class 1**: Lower semicircle, inverted and offset
-- **Use Case**: Non-linearly separable data that challenges linear classifiers
-- **Educational Value**: Demonstrates limitations of linear models
+**Why This Algorithm**:
+- **Deterministic**: Same seed produces identical sequences for reproducibility
+- **High Quality**: Passes statistical randomness tests (unlike simple LCG)
+- **Fast**: Efficient bitwise operations, ~4.2 billion period
+- **Educational Value**: Enables consistent demonstrations across sessions
 
-#### **Controllable Parameters**
+#### **Box-Muller Transform for Gaussian Distribution**
+```typescript
+gaussian(mean = 0, std = 1): number {
+  if (this.hasSpare) {
+    this.hasSpare = false;
+    return this.spare * std + mean;
+  }
 
-**Sample Size (n: 50-1000)**
-- **Purpose**: Controls the amount of training data
-- **Impact on Learning**: 
-  - Small n (50-100): High variance, uncertain predictions
-  - Medium n (200-500): Balanced bias-variance
-  - Large n (800-1000): Low variance, stable predictions
-- **Statistical Principle**: Law of large numbers
+  this.hasSpare = true;
+  const u = this.random();
+  const v = this.random();
+  const mag = std * Math.sqrt(-2 * Math.log(u));
+  this.spare = mag * Math.cos(2 * Math.PI * v);
+  return mag * Math.sin(2 * Math.PI * v) + mean;
+}
+```
 
-**Class Balance (0.1-0.9)**
-- **Purpose**: Controls proportion of Class 1 samples
-- **Values**: 0.1 = 10% Class 1, 0.5 = balanced, 0.9 = 90% Class 1
-- **Impact**: Imbalanced data can bias predictions toward majority class
-- **Real-world Relevance**: Many real datasets have class imbalance
+**Mathematical Foundation**:
+- **Box-Muller Transform**: Converts uniform random variables to Gaussian
+- **Formula**: `Z = σ * √(-2ln(U₁)) * cos(2πU₂) + μ`
+- **Efficiency**: Generates two Gaussian samples per call (uses spare)
+- **Quality**: Produces true normal distribution (not approximation)
 
-**Noise Level (σ: 0.1-1.5)**
-- **For Blobs**: Standard deviation of Gaussian distributions
-- **For Moons**: Magnitude of random perturbations
-- **Impact**: Higher noise makes classification more challenging
-- **Educational Value**: Shows robustness vs. sensitivity tradeoffs
+### **2. Blob Distribution Generation**
 
-**Random Resampling**
-- **Mechanism**: Generates new random seed for each resample
-- **Purpose**: Demonstrates stochastic nature of machine learning
-- **Educational Value**: Shows how different samples affect model training
+#### **Mathematical Model**
+```typescript
+// Class 0: Gaussian at (-1, -1)
+for (let i = 0; i < n0; i++) {
+  points.push({
+    x: rng.gaussian(-1, noise),  // X ~ N(-1, σ²)
+    y: rng.gaussian(-1, noise),  // Y ~ N(-1, σ²)
+    label: 0
+  });
+}
 
-### **3. Model Training System**
+// Class 1: Gaussian at (1, 1)  
+for (let i = 0; i < n1; i++) {
+  points.push({
+    x: rng.gaussian(1, noise),   // X ~ N(1, σ²)
+    y: rng.gaussian(1, noise),   // Y ~ N(1, σ²)
+    label: 1
+  });
+}
+```
 
-#### **Algorithm: Logistic Regression**
-- **Mathematical Model**: Linear combination of features passed through sigmoid function
-- **Decision Boundary**: Straight line where predicted probability = 0.5
-- **Optimization**: Gradient descent with L2 regularization
-- **Loss Function**: Cross-entropy + L2 penalty term
+**Design Rationale**:
+- **Linear Separability**: Centers at (-1,-1) and (1,1) create maximum separation
+- **Diagonal Separation**: Decision boundary naturally runs from top-left to bottom-right
+- **Controllable Overlap**: Higher noise (σ) creates more class overlap
+- **Balanced Difficulty**: Easy enough for linear classifier, challenging enough to show regularization effects
 
-#### **Hyperparameter Controls**
+#### **Class Balance Implementation**
+```typescript
+const n1 = Math.floor(n * balance);  // Class 1 count
+const n0 = n - n1;                   // Class 0 count (ensures exact total)
+```
 
-**Regularization Strength (λ)**
-- **Range**: 10⁻⁴ to 10¹ (logarithmic scale)
-- **Purpose**: Controls model complexity and overfitting
-- **Mathematical Effect**: Adds penalty term λ||w||² to loss function
-- **Practical Impact**:
-  - Low λ (0.0001): Flexible model, may overfit
-  - Medium λ (0.01): Balanced complexity
-  - High λ (1.0): Simple model, may underfit
+**Why This Approach**:
+- **Exact Totals**: Guarantees precisely `n` total points
+- **Controlled Imbalance**: `balance=0.1` → 10% Class 1, 90% Class 0
+- **Real-world Relevance**: Many datasets have class imbalance
 
-**Learning Rate (η)**
-- **Options**: 0.01, 0.05, 0.1
-- **Purpose**: Controls step size in gradient descent
-- **Impact**: 
-  - Too low: Slow convergence
-  - Too high: Unstable training, overshooting
-  - Just right: Smooth, efficient convergence
+### **3. Moons Distribution Generation**
 
-**Training Epochs**
-- **Options**: 50, 100, 200
-- **Purpose**: Number of complete passes through training data
-- **Impact**: More epochs allow better convergence but risk overfitting
+#### **Mathematical Model**
+```typescript
+// Class 0: Upper semicircle (0 to π)
+for (let i = 0; i < n0; i++) {
+  const t = rng.uniform(0, Math.PI);
+  const x = Math.cos(t);
+  const y = Math.sin(t);
+  points.push({
+    x: x + rng.gaussian(0, noise),
+    y: y + rng.gaussian(0, noise),
+    label: 0
+  });
+}
 
-#### **Training Process**
-1. **Data Preprocessing**: Feature standardization (zero mean, unit variance)
-2. **Train/Validation Split**: 80% training, 20% validation
-3. **Weight Initialization**: Small random values near zero
-4. **Gradient Descent**: Iterative weight updates
-5. **Progress Monitoring**: Real-time loss and accuracy tracking
+// Class 1: Lower semicircle (inverted and offset)
+for (let i = 0; i < n1; i++) {
+  const t = rng.uniform(0, Math.PI);
+  const x = 1 - Math.cos(t);          // Horizontal flip + offset
+  const y = 0.5 - Math.sin(t);        // Vertical flip + offset
+  points.push({
+    x: x + rng.gaussian(0, noise),
+    y: y + rng.gaussian(0, noise),
+    label: 1
+  });
+}
+```
 
-### **4. Uncertainty Analysis System**
+**Geometric Construction**:
+- **Class 0**: Parametric circle `(cos(t), sin(t))` for `t ∈ [0, π]`
+- **Class 1**: Transformed circle `(1-cos(t), 0.5-sin(t))` for `t ∈ [0, π]`
+- **Interlocking Pattern**: Creates two crescents that interlock
+- **Non-linear Separability**: No straight line can perfectly separate the classes
 
-#### **Repeat Training (Variance Estimation)**
-- **Purpose**: Quantifies model instability across different datasets
-- **Process**: Train multiple models on bootstrap samples of original data
-- **Visualization**: Overlapping decision boundaries (gray lines)
-- **Interpretation**: 
-  - Tight boundaries = low variance, stable model
-  - Spread boundaries = high variance, unstable model
+**Why This is Challenging for Linear Classifiers**:
+- **Curved Boundary**: Optimal separator is curved, not straight
+- **Linear Limitation**: Logistic regression can only draw straight lines
+- **Educational Value**: Shows when linear models struggle
 
-#### **Bootstrap Confidence Intervals**
-- **Statistical Method**: Bootstrap resampling with replacement
-- **Purpose**: Estimates uncertainty in accuracy measurement
-- **Process**: 
-  1. Resample dataset 300-1000 times with replacement
-  2. Calculate accuracy on each resample using trained model
-  3. Compute 95% confidence interval using percentile method
-- **Visualization**: Histogram with confidence interval bounds
-- **Interpretation**: Narrow CI = confident estimate, Wide CI = uncertain estimate
+### **4. Post-Processing Steps**
 
-### **5. Visualization System**
+#### **Fisher-Yates Shuffle**
+```typescript
+for (let i = points.length - 1; i > 0; i--) {
+  const j = Math.floor(rng.random() * (i + 1));
+  [points[i], points[j]] = [points[j], points[i]];
+}
+```
 
-#### **Main Plot Canvas**
-- **Technology**: HTML5 Canvas for high-performance rendering
-- **Elements**:
-  - **Data Points**: Blue circles (Class 0), Orange circles (Class 1)
-  - **Decision Boundary**: White line at probability = 0.5
-  - **Probability Heatmap**: Background colors showing model confidence
-  - **Uncertainty Bounds**: Gray lines from repeat training
-- **Interactions**: Real-time updates during training
+**Purpose**: Randomizes point order to prevent any systematic bias during train/val split.
 
-#### **Statistical Displays**
-- **Bootstrap Histogram**: Distribution of accuracy estimates
-- **Stats Panel**: Numerical summaries and model parameters
-- **Loss Sparkline**: Real-time training progress indicator
+#### **Automatic Bounds Calculation**
+```typescript
+const xMargin = (xMax - xMin) * 0.1;
+const yMargin = (yMax - yMin) * 0.1;
+bounds = {
+  xMin: xMin - xMargin,
+  xMax: xMax + xMargin,
+  yMin: yMin - yMargin,
+  yMax: yMax + yMargin
+};
+```
+
+**Purpose**: Creates consistent visualization boundaries with 10% padding for all datasets.
+
+---
+
+## 🧠 Training Logic Deep Dive
+
+This section provides a detailed breakdown of the logistic regression training implementation, which is the core computational challenge of the application.
+
+### **Training Flow Overview**
+
+The training process involves multiple stages: data preprocessing, model initialization, gradient computation, weight updates, and progress monitoring. All training occurs in a Web Worker to maintain UI responsiveness.
+
+### **1. Data Preprocessing Pipeline**
+
+#### **Feature Standardization**
+```typescript
+// src/utils/logisticRegression.ts
+export function standardizeFeatures(points: DataPoint[]): {
+  standardized: DataPoint[];
+  meanX: Float32Array;
+  stdX: Float32Array;
+} {
+  const n = points.length;
+  const meanX = new Float32Array(2);
+  const stdX = new Float32Array(2);
+  
+  // Calculate means
+  for (const point of points) {
+    meanX[0] += point.x;
+    meanX[1] += point.y;
+  }
+  meanX[0] /= n;
+  meanX[1] /= n;
+  
+  // Calculate standard deviations
+  for (const point of points) {
+    stdX[0] += Math.pow(point.x - meanX[0], 2);
+    stdX[1] += Math.pow(point.y - meanX[1], 2);
+  }
+  stdX[0] = Math.sqrt(stdX[0] / n);
+  stdX[1] = Math.sqrt(stdX[1] / n);
+  
+  // Guard against zero std (prevents division by zero)
+  if (stdX[0] < 1e-8) stdX[0] = 1;
+  if (stdX[1] < 1e-8) stdX[1] = 1;
+  
+  // Apply standardization: z = (x - μ) / σ
+  const standardized = points.map(point => ({
+    x: (point.x - meanX[0]) / stdX[0],
+    y: (point.y - meanX[1]) / stdX[1],
+    label: point.label
+  }));
+  
+  return { standardized, meanX, stdX };
+}
+```
+
+**Explanation**: Standardization ensures all features have zero mean and unit variance. This is crucial for gradient descent convergence because:
+- Features with different scales can cause gradient updates to be dominated by large-magnitude features
+- Standardization makes the optimization landscape more spherical, leading to faster convergence
+- The means and standard deviations are stored to transform new data consistently
+
+#### **Train/Validation Split**
+```typescript
+export function trainValSplit(points: DataPoint[], trainRatio: number = 0.8): {
+  train: DataPoint[];
+  val: DataPoint[];
+} {
+  const n = points.length;
+  const nTrain = Math.floor(n * trainRatio);
+  
+  return {
+    train: points.slice(0, nTrain),
+    val: points.slice(nTrain)
+  };
+}
+```
+
+**Explanation**: Simple temporal split (not random) to maintain deterministic behavior given the same seed. The validation set is used to monitor generalization performance during training.
+
+### **2. Core Training Algorithm**
+
+#### **Numerically Stable Sigmoid Function**
+```typescript
+function sigmoid(x: number): number {
+  if (x > 0) {
+    const exp_neg_x = Math.exp(-x);
+    return 1 / (1 + exp_neg_x);
+  } else {
+    const exp_x = Math.exp(x);
+    return exp_x / (1 + exp_x);
+  }
+}
+```
+
+**Explanation**: This implementation prevents numerical overflow that would occur with the naive `1 / (1 + exp(-x))` formula:
+- For large positive x: `exp(-x)` approaches 0, avoiding `exp(x)` overflow
+- For large negative x: `exp(x)` approaches 0, avoiding `exp(-x)` overflow
+- This ensures stable computation across the entire real number line
+
+#### **Loss Function with Regularization**
+```typescript
+export function calculateLoss(weights: Float32Array, X: Float32Array, y: Float32Array, n: number, lambda: number): number {
+  let loss = 0;
+  
+  // Cross-entropy loss computation
+  for (let i = 0; i < n; i++) {
+    const logit = weights[0] + weights[1] * X[i * 2] + weights[2] * X[i * 2 + 1];
+    // Clamp logit to prevent extreme values
+    const clampedLogit = Math.max(-500, Math.min(500, logit));
+    const prob = sigmoid(clampedLogit);
+    
+    // Clamp probability to prevent log(0)
+    const clampedProb = Math.max(1e-15, Math.min(1 - 1e-15, prob));
+    
+    // Cross-entropy: -[y*log(p) + (1-y)*log(1-p)]
+    if (y[i] === 1) {
+      loss -= Math.log(clampedProb);
+    } else {
+      loss -= Math.log(1 - clampedProb);
+    }
+  }
+  
+  loss /= n;  // Average over samples
+  
+  // Add L2 regularization (note: bias term is not regularized)
+  const l2 = lambda * (weights[1] * weights[1] + weights[2] * weights[2]);
+  return loss + l2;
+}
+```
+
+**Mathematical Foundation**:
+- **Cross-entropy loss**: `L = -[y*log(p) + (1-y)*log(1-p)]` measures probability alignment
+- **Why cross-entropy**: Derivative w.r.t. logit simplifies to `(predicted - actual)`
+- **L2 regularization**: `λ||w||²` penalizes large weights to prevent overfitting
+- **Bias exclusion**: w₀ only shifts boundary, shouldn't be penalized for magnitude
+
+**Numerical Safeguards**:
+- **Logit clamping**: `[-500, 500]` prevents sigmoid overflow (`exp(500) ≈ 10²¹⁷`)
+- **Probability clamping**: `[1e-15, 1-1e-15]` prevents `log(0) = -∞`
+- **IEEE 754 compliance**: Handles extreme values without NaN/Infinity
+
+#### **Gradient Computation and Weight Updates**
+```typescript
+export function trainLogisticRegression(
+  trainData: TrainingData,
+  valData: TrainingData,
+  config: ModelConfig,
+  onProgress?: (epoch: number, loss: number, trainAcc: number, valAcc: number) => void
+): ModelState {
+  const { lambda, learningRate, epochs } = config;
+  const { X: trainX, y: trainY, n: trainN } = trainData;
+  const { X: valX, y: valY, n: valN } = valData;
+  
+  // Initialize weights: small random values to break symmetry
+  const weights = new Float32Array([0, Math.random() * 0.1 - 0.05, Math.random() * 0.1 - 0.05]);
+  const losses: number[] = [];
+  
+  for (let epoch = 0; epoch < epochs; epoch++) {
+    const gradients = new Float32Array(3);  // [∂L/∂w₀, ∂L/∂w₁, ∂L/∂w₂]
+    
+    // Compute gradients for each training sample
+    for (let i = 0; i < trainN; i++) {
+      // Forward pass: compute prediction
+      const logit = weights[0] + weights[1] * trainX[i * 2] + weights[2] * trainX[i * 2 + 1];
+      const prob = sigmoid(logit);
+      const error = prob - trainY[i];  // ∂L/∂logit = p - y
+      
+      // Backpropagate error to weights
+      gradients[0] += error;                    // ∂L/∂w₀ = error * 1
+      gradients[1] += error * trainX[i * 2];    // ∂L/∂w₁ = error * x₁
+      gradients[2] += error * trainX[i * 2 + 1]; // ∂L/∂w₂ = error * x₂
+    }
+    
+    // Average gradients and add regularization
+    gradients[0] /= trainN;                                    // Bias gradient (no regularization)
+    gradients[1] = gradients[1] / trainN + 2 * lambda * weights[1];  // W₁ gradient + L2
+    gradients[2] = gradients[2] / trainN + 2 * lambda * weights[2];  // W₂ gradient + L2
+    
+    // Gradient descent update: w = w - η * ∇L
+    weights[0] -= learningRate * gradients[0];
+    weights[1] -= learningRate * gradients[1];
+    weights[2] -= learningRate * gradients[2];
+    
+    // Monitor progress every 10 epochs
+    if (epoch % 10 === 0 || epoch === epochs - 1) {
+      const loss = calculateLoss(weights, trainX, trainY, trainN, lambda);
+      const trainAcc = calculateAccuracy(weights, trainX, trainY, trainN);
+      const valAcc = calculateAccuracy(weights, valX, valY, valN);
+      
+      losses.push(loss);
+      
+      if (onProgress) {
+        onProgress(epoch, loss, trainAcc, valAcc);
+      }
+    }
+  }
+  
+  const finalTrainAcc = calculateAccuracy(weights, trainX, trainY, trainN);
+  const finalValAcc = calculateAccuracy(weights, valX, valY, valN);
+  
+  return {
+    weights,
+    trainAccuracy: finalTrainAcc,
+    valAccuracy: finalValAcc,
+    losses,
+    meanX: new Float32Array([0, 0]), // Set by caller
+    stdX: new Float32Array([1, 1])   // Set by caller
+  };
+}
+```
+
+**Mathematical Breakdown**:
+
+1. **Forward Pass**: For each sample, compute the linear combination and probability:
+   ```
+   logit = w₀ + w₁x₁ + w₂x₂
+   p = σ(logit) = 1/(1 + e^(-logit))
+   ```
+
+2. **Error Computation**: The derivative of cross-entropy loss w.r.t. logit is simply:
+   ```
+   ∂L/∂logit = p - y
+   ```
+
+3. **Gradient Computation**: Chain rule gives us gradients w.r.t. weights:
+   ```
+   ∂L/∂w₀ = (p - y) * 1     // Bias gradient
+   ∂L/∂w₁ = (p - y) * x₁    // Feature 1 gradient  
+   ∂L/∂w₂ = (p - y) * x₂    // Feature 2 gradient
+   ```
+
+4. **Regularization**: L2 penalty adds `2λwⱼ` to each weight gradient (except bias):
+   ```
+   ∂L/∂w₁ += 2λw₁
+   ∂L/∂w₂ += 2λw₂
+   ```
+
+5. **Weight Update**: Standard gradient descent:
+   ```
+   wⱼ ← wⱼ - η * ∂L/∂wⱼ
+   ```
+
+### **3. Web Worker Integration**
+
+The training occurs in `public/training-worker.js` to prevent UI blocking:
+
+```javascript
+// Main training message handler
+if (type === 'train') {
+  const { points, modelConfig, seed } = data;
+  
+  // Preprocessing pipeline
+  const { standardized, meanX, stdX } = standardizeFeatures(points);
+  const { train, val } = trainValSplit(standardized);
+  const trainData = pointsToArrays(train);
+  const valData = pointsToArrays(val);
+  
+  // Train model with progress reporting
+  const result = trainLogisticRegression(trainData, valData, modelConfig);
+  result.meanX = meanX;
+  result.stdX = stdX;
+  
+  // Send results back to main thread
+  self.postMessage({
+    type: 'complete',
+    result
+  });
+}
+```
+
+**Critical Implementation Details**:
+
+#### **Why Batch Gradient Descent**:
+- **Stability**: Full dataset gradients are less noisy than SGD
+- **Deterministic**: Same data order produces identical results
+- **Educational**: Smoother convergence curves for visualization
+- **Scale**: Dataset sizes (50-1000) make batch computation feasible
+
+#### **Mathematical Correctness Verification**:
+```
+Logistic Regression Model: p = σ(w₀ + w₁x₁ + w₂x₂)
+Cross-entropy Loss: L = -[y*log(p) + (1-y)*log(1-p)]
+
+Derivative Chain Rule:
+∂L/∂logit = ∂L/∂p * ∂p/∂logit = (p-y) * p(1-p) / (p(1-p)) = p-y
+
+Feature Gradients:
+∂L/∂w₀ = (p-y) * 1 = error
+∂L/∂w₁ = (p-y) * x₁ = error * x₁  
+∂L/∂w₂ = (p-y) * x₂ = error * x₂
+
+L2 Regularization Gradients:
+∂(λw²)/∂w = 2λw
+```
+
+#### **Weight Initialization Strategy**:
+```typescript
+weights = [0, random()*0.1-0.05, random()*0.1-0.05]
+```
+- **Bias = 0**: Neutral starting point for decision boundary
+- **Small random weights**: Break symmetry, prevent identical feature learning
+- **Scale [-0.05, 0.05]**: Small enough to avoid saturation, large enough for learning
+
+#### **Training Convergence Analysis**:
+- **Progress Monitoring**: Every 10 epochs balances UI responsiveness vs computation
+- **Early Convergence**: Most improvement happens in first 50-100 epochs
+- **Loss Tracking**: Decreasing loss indicates proper gradient descent
+- **Accuracy Gap**: Train vs validation gap indicates overfitting
+
+#### **Standardization Critical Importance**:
+```typescript
+// Without standardization: features at different scales
+x₁ ∈ [-5, 5], x₂ ∈ [-100, 100]
+// Gradient: [error, error*x₁, error*x₂]
+// Update: w₁ changes slowly, w₂ changes rapidly → unstable convergence
+
+// With standardization: features at same scale  
+x₁, x₂ ∈ [-3, 3] (approximately)
+// Gradient updates are balanced → stable convergence
+```
+
+**Performance Optimizations**:
+- **Float32Array**: 50% memory reduction vs standard arrays
+- **Batch Operations**: Vectorized computations where possible
+- **Web Worker**: Non-blocking UI during intensive computation
+- **Progress Throttling**: UI updates every 10 epochs, not every epoch
+
+---
+
+## 📊 Bootstrap & Uncertainty Analysis Logic
+
+This section explains the statistical methods used to quantify model uncertainty and variance.
+
+### **1. Bootstrap Resampling Method**
+
+#### **Bootstrap Sample Generation**
+```javascript
+function generateBootstrapSample(points, rng) {
+  const n = points.length;
+  const sample = [];
+  
+  for (let i = 0; i < n; i++) {
+    const idx = Math.floor(rng.random() * n);
+    sample.push(points[idx]);  // Sample WITH replacement
+  }
+  
+  return sample;
+}
+```
+
+**Statistical Foundation**:
+- **Resampling with Replacement**: Creates datasets of same size as original
+- **Bootstrap Principle**: Simulates drawing multiple samples from unknown population
+- **Efron's Method**: Estimates sampling distribution of any statistic
+- **No Distributional Assumptions**: Works regardless of underlying data distribution
+
+#### **Why Bootstrap Works**:
+```
+Original Dataset: {x₁, x₂, ..., xₙ}
+Bootstrap Sample 1: {x₃, x₁, x₁, x₇, ..., xₙ}  ← some points repeated, others missing
+Bootstrap Sample 2: {x₂, x₅, x₃, x₃, ..., x₁}  ← different random sampling
+...
+Bootstrap Sample B: {x₁, x₄, x₄, x₂, ..., xₙ}
+
+Each sample → Train model → Get accuracy → Distribution of accuracies
+```
+
+### **2. Confidence Interval Calculation**
+
+#### **Percentile Method Implementation**
+```javascript
+// Calculate 95% confidence interval
+accuracies.sort((a, b) => a - b);
+const lowerIndex = Math.floor(0.025 * accuracies.length);
+const upperIndex = Math.floor(0.975 * accuracies.length);
+const confidenceInterval = [accuracies[lowerIndex], accuracies[upperIndex]];
+```
+
+**Statistical Interpretation**:
+- **95% CI**: If we repeated the entire experiment many times, 95% of intervals would contain true accuracy
+- **Percentile Method**: Uses 2.5th and 97.5th percentiles of bootstrap distribution
+- **Non-parametric**: No assumption about normal distribution of accuracies
+- **Practical Meaning**: "True model accuracy likely lies between [lower, upper] bounds"
+
+#### **Bootstrap vs Traditional Confidence Intervals**:
+```
+Traditional CI (assumes normality):
+CI = x̄ ± t₀.₀₂₅ * (s/√n)
+
+Bootstrap CI (no assumptions):
+CI = [P₂.₅, P₉₇.₅] from bootstrap distribution
+```
+
+### **3. Repeat Training for Variance Visualization**
+
+#### **Multiple Model Training Process**
+```javascript
+for (let i = 0; i < numRuns; i++) {
+  // Create different bootstrap sample
+  const resampledPoints = generateBootstrapSample(points, rng);
+  
+  // Train separate model on this sample
+  const { standardized, meanX, stdX } = standardizeFeatures(resampledPoints);
+  const { train, val } = trainValSplit(standardized);
+  const result = trainLogisticRegression(trainData, valData, modelConfig);
+  
+  // Each model has different decision boundary
+  results.push(result);
+}
+```
+
+**Variance Visualization Principle**:
+- **Multiple Boundaries**: Each model produces slightly different decision line
+- **Boundary Spread**: Wide spread indicates high variance (unstable model)
+- **Boundary Clustering**: Tight clustering indicates low variance (stable model)
+- **Visual Uncertainty**: Users can directly see model instability
+
+#### **What Affects Model Variance**:
+```
+High Variance Scenarios:
+- Small sample size (n < 100)
+- High noise in data (σ > 1.0)
+- Low regularization (λ < 0.001)
+- Complex distributions (moons)
+
+Low Variance Scenarios:
+- Large sample size (n > 500)  
+- Low noise in data (σ < 0.5)
+- Moderate regularization (λ ≈ 0.01)
+- Simple distributions (well-separated blobs)
+```
+
+### **4. Statistical Consistency Checks**
+
+#### **Bootstrap Sample Size Guidelines**:
+- **Minimum**: 100 samples for rough estimate
+- **Recommended**: 500-1000 samples for stable CI
+- **Computational Trade-off**: More samples = better estimate but slower computation
+
+#### **Standardization Consistency**:
+```javascript
+// CRITICAL: Use original standardization parameters
+const standardizedSample = bootstrapSample.map(point => ({
+  x: (point.x - meanX[0]) / stdX[0],  // Use ORIGINAL mean/std
+  y: (point.y - meanX[1]) / stdX[1],  // Not bootstrap sample's mean/std
+  label: point.label
+}));
+```
+
+**Why Original Standardization**:
+- **Consistent Scale**: All bootstrap samples use same transformation
+- **Fair Comparison**: Models trained on comparably scaled data
+- **Realistic Simulation**: Mirrors real-world scenario where standardization parameters are fixed
+
+### **5. Educational Value of Uncertainty Analysis**
+
+#### **Bias-Variance Tradeoff Visualization**:
+```
+High Regularization (λ = 1.0):
+- Decision boundaries cluster tightly (low variance)
+- May miss optimal separation (higher bias)
+- Narrow confidence intervals
+
+Low Regularization (λ = 0.0001):  
+- Decision boundaries spread widely (high variance)
+- Fits training data closely (lower bias)
+- Wide confidence intervals
+```
+
+#### **Sample Size Effect Demonstration**:
+```
+Small Dataset (n = 100):
+- Bootstrap accuracies vary widely
+- Wide confidence intervals (±5-10%)
+- Decision boundaries fan out significantly
+
+Large Dataset (n = 800):
+- Bootstrap accuracies cluster tightly  
+- Narrow confidence intervals (±1-2%)
+- Decision boundaries nearly identical
+```
+
+This uncertainty analysis provides quantitative evidence for fundamental ML principles that are often only discussed theoretically.
 
 ---
 
@@ -263,51 +750,32 @@ statml-lab/
 
 ---
 
-## ⚛️ React Application Core
+## ⚛️ React Application Architecture
 
-### `src/index.tsx`
-**Purpose**: React application entry point and DOM mounting.
+### `src/App.tsx`
+**Purpose**: Main application state container and component orchestrator.
 
-**Responsibilities**:
-- Creates React root using `ReactDOM.createRoot`
-- Mounts App component in React.StrictMode
-- Connects to `#root` element in HTML template
-
-### `src/App.tsx` 🏛️
-**Purpose**: Main application component orchestrating the entire UI and state management.
-
-**Architecture**:
+**State Management**:
 ```typescript
-// State Management
-const [dataConfig, setDataConfig] = useState<GeneratorConfig>()     // Data generation params
+const [dataConfig, setDataConfig] = useState<GeneratorConfig>()     // Data generation parameters
 const [modelConfig, setModelConfig] = useState<ModelConfig>()       // Training hyperparameters  
-const [uncertaintyConfig, setUncertaintyConfig] = useState()        // Uncertainty analysis params
+const [uncertaintyConfig, setUncertaintyConfig] = useState()        // Uncertainty analysis settings
 const [model, setModel] = useState<ModelState | null>()            // Trained model state
-const [isTraining, setIsTraining] = useState<boolean>()            // Training status
-const [uncertaintyBounds, setUncertaintyBounds] = useState()       // Multiple model boundaries
-const [bootstrapAccuracies, setBootstrapAccuracies] = useState()   // Bootstrap samples
+const [isTraining, setIsTraining] = useState<boolean>()            // Training status flag
+const [uncertaintyBounds, setUncertaintyBounds] = useState()       // Multiple decision boundaries
+const [bootstrapAccuracies, setBootstrapAccuracies] = useState()   // Bootstrap accuracy samples
 const [confidenceInterval, setConfidenceInterval] = useState()     // Statistical confidence interval
 ```
 
-**Key Features**:
-- **Reactive Data Generation**: Dataset regenerates when config changes
-- **Training Management**: Handles model training, pause, reset operations
-- **Uncertainty Analysis**: Coordinates repeat training and bootstrap sampling
-- **Component Orchestration**: Manages communication between all UI components
-
-**Layout Structure**:
+**Component Layout**:
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ [ControlPanel: 360px] │ [Main Content: flex]                │
-│                       │ ┌─────────────────────────────────┐ │
-│ - Quick Presets       │ │ PlotCanvas (750x400)            │ │
-│ - Data Generation     │ │ + LossSparkline overlay         │ │
-│ - Model Training      │ └─────────────────────────────────┘ │
-│ - Uncertainty Analysis│ ┌─────────────┬─────────────────┐   │
-│                       │ │ Bootstrap   │ StatsPanel      │   │
-│                       │ │ Histogram   │                 │   │
-│                       │ └─────────────┴─────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+Grid Layout: [360px ControlPanel] [1fr MainContent]
+├── ControlPanel (collapsible sections)
+└── MainContent
+    ├── PlotCanvas (750x400) + LossSparkline overlay
+    └── Bottom Grid [2 columns, 240px height]
+        ├── BootstrapHistogram (380x220)
+        └── StatsPanel
 ```
 
 ---
@@ -315,92 +783,52 @@ const [confidenceInterval, setConfidenceInterval] = useState()     // Statistica
 ## 🎛️ UI Components
 
 ### `src/components/ControlPanel.tsx`
-**Purpose**: Comprehensive control interface for all application parameters.
+**Purpose**: Parameter control interface with collapsible sections.
 
-**Component Architecture**:
-```typescript
-// Sub-components
-<CollapsibleSection />  // Expandable/collapsible sections
-<Slider />             // Custom range inputs with logarithmic support
-<Select />             // Dropdown selectors
-<Button />             // Consistent button styling
-```
+**Component Structure**:
+- **CollapsibleSection**: Expandable panels with help tooltips
+- **Slider**: Range inputs with logarithmic scale support for regularization
+- **Select**: Dropdown controls for discrete options
+- **Button**: Consistent styling for actions
 
 **Sections**:
-1. **Quick Presets**: Educational scenario configurations
-2. **Data Generation**: Distribution type, sample size, balance, noise control
-3. **Model Training**: Regularization, learning rate, epochs, train/pause/reset
-4. **Uncertainty Analysis**: Repeat runs and bootstrap sample configuration
+1. **Quick Presets**: Four predefined configurations
+2. **Data Generation**: Distribution, sample size, balance, noise controls
+3. **Model Training**: Hyperparameters and training controls
+4. **Uncertainty Analysis**: Repeat runs and bootstrap configuration
 
-**Key Features**:
-- **Logarithmic Sliders**: Regularization parameter uses log10 scale
-- **Real-time Updates**: All changes immediately trigger parent callbacks
-- **Preset System**: One-click configuration for educational scenarios
-- **Random Resampling**: Generate new data variations on demand
+**Implementation Details**:
+- Regularization slider uses logarithmic scale (10^-4 to 10^1)
+- All parameter changes trigger immediate parent callbacks
+- Modal help system with educational content
 
-### `src/components/PlotCanvas.tsx` 🎨
-**Purpose**: Main visualization component using HTML5 Canvas for high-performance rendering.
-
-**Rendering Pipeline**:
-1. **Data Preparation**: Scale data points to canvas coordinates using d3-scale
-2. **Background Heatmap**: Probability surface with class-colored regions
-3. **Uncertainty Bounds**: Semi-transparent decision boundaries from multiple models
-4. **Main Decision Boundary**: Primary model's decision line
-5. **Data Points**: Scatter plot with class-based coloring
-6. **Axes & Labels**: Grid lines, tick marks, and axis labels
-
-**Performance Optimizations**:
-- **High-DPI Support**: Automatic device pixel ratio scaling
-- **Coarse Heatmap Grid**: 2px grid for probability surface rendering
-- **Efficient Redraws**: Canvas clearing and selective rendering
-- **Temporary Canvas**: Off-screen heatmap rendering for better performance
-
-**Visual Design**:
-- **Color Scheme**: Blue (#3b82f6) for Class 0, Orange (#f97316) for Class 1
-- **Decision Boundary**: White line with 3px width for visibility
-- **Uncertainty Lines**: Gray semi-transparent lines (30% opacity)
-- **Grid**: Subtle dotted lines for coordinate reference
-
-### `src/components/LossSparkline.tsx`
-**Purpose**: Real-time loss function visualization during training.
-
-**Features**:
-- **Overlay Positioning**: Absolute positioned in top-right of main plot
-- **Adaptive Scaling**: Auto-scales Y-axis to loss value range
-- **Emerald Line**: Green (#10b981) sparkline for loss progression
-- **Current Value Display**: Shows latest loss value with monospace font
-- **Smooth Animation**: Updates every 10 epochs during training
-
-### `src/components/BootstrapHistogram.tsx`
-**Purpose**: Statistical visualization of bootstrap accuracy distribution.
+### `src/components/PlotCanvas.tsx`
+**Purpose**: High-performance Canvas-based visualization of training data and model results.
 
 **Rendering Elements**:
-- **Histogram Bars**: Blue bars showing accuracy frequency distribution
-- **Mean Line**: Green vertical line at distribution mean
-- **Confidence Interval**: Red dashed lines at 2.5% and 97.5% percentiles
-- **Adaptive Binning**: Square root rule for optimal bin count
-- **Axis Labels**: Accuracy (X) and Count (Y) with tick marks
+1. **Probability Heatmap**: Background colors showing model confidence
+2. **Data Points**: Blue circles (Class 0), Orange circles (Class 1)
+3. **Decision Boundary**: White line at p=0.5
+4. **Uncertainty Bounds**: Gray lines from repeat training (30% opacity)
+5. **Grid System**: Coordinate reference with d3-scale transformations
 
-**Statistical Features**:
-- **Percentile Method**: 95% confidence interval calculation
-- **Robust Binning**: Handles edge cases with minimum/maximum bin constraints
-- **Clear Legends**: Mean accuracy and CI bounds clearly marked
+**Performance Features**:
+- High-DPI canvas scaling (`devicePixelRatio`)
+- Coarse heatmap grid (2px) for performance
+- Temporary canvas for heatmap rendering
+- Efficient redraw on state changes
 
-### `src/components/StatsPanel.tsx`
-**Purpose**: Comprehensive numerical summary of model and uncertainty statistics.
+**Technical Implementation**:
+- Uses d3-scale for coordinate transformations
+- Canvas 2D context with proper scaling
+- Numerical stability for decision boundary calculation
 
-**Information Sections**:
-1. **Dataset Info**: Sample size and train/validation split ratio
-2. **Performance Metrics**: Train/validation accuracy and final loss
-3. **Model Parameters**: Bias (w₀) and feature weights (w₁, w₂)
-4. **Uncertainty Analysis**: Bootstrap mean, std deviation, confidence interval
-5. **Educational Tips**: Interpretive guidance on bias-variance effects
+### Other Components
 
-**Formatting**:
-- **Color Coding**: Green for training metrics, blue for validation, red for CI
-- **Monospace Numbers**: Consistent numerical alignment
-- **Percentage Display**: Accuracies shown as percentages with 1 decimal
-- **Scientific Notation**: Parameters displayed with 3 decimal precision
+**`src/components/LossSparkline.tsx`**: Overlay sparkline showing training loss progression
+**`src/components/BootstrapHistogram.tsx`**: Histogram visualization of bootstrap accuracy distribution  
+**`src/components/StatsPanel.tsx`**: Numerical display of model metrics and parameters
+**`src/components/HelpTooltip.tsx`**: Modal help system with educational content
 
 ---
 
@@ -409,306 +837,111 @@ const [confidenceInterval, setConfidenceInterval] = useState()     // Statistica
 ### `src/utils/dataGenerator.ts`
 **Purpose**: Synthetic dataset generation with reproducible random sampling.
 
-**Data Distributions**:
+**Distributions**:
+- **Blobs**: Two Gaussian clusters at (-1,-1) and (1,1) with configurable noise
+- **Moons**: Two semicircular arcs with Gaussian noise perturbations
 
-1. **Blobs (Gaussians)**:
-   ```typescript
-   // Two well-separated Gaussian distributions
-   Class 0: μ = [-1, -1], σ = configurable noise
-   Class 1: μ = [1, 1], σ = configurable noise
-   ```
-
-2. **Moons (Arcs)**:
-   ```typescript
-   // Two interlocking semicircular patterns
-   Class 0: Upper semicircle from 0 to π
-   Class 1: Lower semicircle, offset and inverted
-   ```
-
-**Key Features**:
-- **Seedable Generation**: Uses SeededRandom for reproducibility
-- **Configurable Balance**: Adjustable class proportion (0.1 to 0.9)
-- **Noise Control**: Variable standard deviation for both distributions
-- **Auto-bounds**: 10% margin calculation for plot boundaries
-- **Point Shuffling**: Fisher-Yates shuffle for random ordering
+**Implementation**: Uses SeededRandom for reproducibility, Fisher-Yates shuffle, automatic boundary calculation with 10% margins.
 
 ### `src/utils/logisticRegression.ts`
-**Purpose**: Core machine learning algorithms with numerical stability.
+**Purpose**: Logistic regression implementation with numerical stability safeguards.
 
-**Training Pipeline**:
-```typescript
-1. standardizeFeatures() → Feature normalization (z-score)
-2. trainValSplit() → 80/20 random split  
-3. trainLogisticRegression() → Gradient descent optimization
-4. calculateAccuracy() → Performance evaluation
-```
+**Key Functions**:
+- `standardizeFeatures()`: Z-score normalization
+- `trainLogisticRegression()`: Batch gradient descent with L2 regularization
+- `calculateAccuracy()`: Classification performance evaluation
+- `predictProba()`: Probability prediction for new points
 
-**Numerical Stability Features**:
-- **Stable Sigmoid**: Handles large positive/negative logits without overflow
-- **Clamped Probabilities**: Prevents log(0) in cross-entropy loss
-- **L2 Regularization**: Penalizes large weights (excluding bias term)
-- **Gradient Clipping**: Implicit through learning rate bounds
-- **Progress Reporting**: Callback system for UI updates
-
-**Algorithm Details**:
-- **Optimizer**: Vanilla gradient descent (not SGD)
-- **Loss Function**: Cross-entropy + L2 penalty
-- **Weight Initialization**: Small random values around zero
-- **Convergence**: Fixed epoch count (50-200 typical)
+**Numerical Stability**: Stable sigmoid, probability clamping, logit clamping to prevent overflow/underflow.
 
 ### `src/utils/presets.ts`
-**Purpose**: Predefined configurations for educational scenarios.
-
-**Educational Presets**:
-1. **"Small & Noisy"**: Demonstrates high variance with limited data
-2. **"Bigger Dataset"**: Shows variance reduction with more samples
-3. **"High Regularization"**: Illustrates bias increase, variance decrease
-4. **"Low Regularization"**: Potential overfitting demonstration
-
-**Features**:
-- **Quick Configuration**: Instant loading of educational scenarios
-- **Comparative Analysis**: Easy switching between different setups
-- **Educational Focus**: Each preset demonstrates specific ML concepts
+**Purpose**: Four predefined configurations demonstrating different ML scenarios.
 
 ### `src/utils/random.ts`
-**Purpose**: High-quality seedable pseudorandom number generator.
+**Purpose**: Mulberry32 PRNG implementation for reproducible random number generation.
 
-**Implementation**: Mulberry32 algorithm
-- **Period**: ~4.2 billion before repetition
-- **Quality**: Passes standard randomness tests
-- **Performance**: Fast bitwise operations
-- **Reproducibility**: Identical sequences from same seed
-
-**Distribution Methods**:
-- `random()`: Uniform [0, 1)
-- `uniform(min, max)`: Uniform in custom range
-- `gaussian(μ, σ)`: Box-Muller transform for normal distribution
+**Methods**: `random()`, `uniform()`, `gaussian()` using Box-Muller transform.
 
 ---
 
 ## 🔄 Hooks & Workers
 
 ### `src/hooks/useTrainingWorker.ts`
-**Purpose**: React hook managing Web Worker communication for background computing.
-
-**Job Types**:
-1. **'training'**: Single model training with progress updates
-2. **'repeat'**: Multiple model training for uncertainty bounds
-3. **'bootstrap'**: Bootstrap resampling for confidence intervals
+**Purpose**: React hook for Web Worker communication and job management.
 
 **Message Protocol**:
-```typescript
-// Outbound (Main → Worker)
-{ type: 'train', data: { points, modelConfig, seed } }
-{ type: 'repeatTraining', data: { points, modelConfig, numRuns, seed } }
-{ type: 'bootstrap', data: { points, modelWeights, meanX, stdX, numSamples, seed } }
+- **Outbound**: `train`, `repeatTraining`, `bootstrap` with data payload
+- **Inbound**: `progress`, `complete`, `repeatComplete`, `bootstrapComplete`
+- **Error Handling**: Worker termination/recreation, job state tracking
 
-// Inbound (Worker → Main)  
-{ type: 'progress', epoch, loss, trainAccuracy, valAccuracy }
-{ type: 'complete', result: ModelState }
-{ type: 'repeatComplete', results: ModelState[] }
-{ type: 'bootstrapComplete', accuracies: number[], confidenceInterval: [number, number] }
-```
+### `public/training-worker.js`
+**Purpose**: Web Worker for non-blocking ML computations.
 
-**Error Handling**:
-- Worker termination and recreation on job cancellation
-- Graceful error propagation to UI
-- Job state tracking to prevent race conditions
-
-### `public/training-worker.js` ⚙️
-**Purpose**: Web Worker implementation for CPU-intensive machine learning computations.
-
-**Why Web Worker?**
-- **Non-blocking UI**: Keeps interface responsive during training
-- **Parallel Processing**: Leverages additional CPU cores
-- **Progress Reporting**: Real-time training updates
-- **Cancellable Jobs**: Can terminate long-running operations
-
-**Inlined Dependencies**:
-Since workers can't import ES modules, all utilities are inlined:
-- SeededRandom class (identical to utils/random.ts)
-- Sigmoid, loss, accuracy functions (from utils/logisticRegression.ts)
-- Feature standardization and data splitting
-- Bootstrap sampling logic
-
-**Bootstrap Algorithm**:
-```javascript
-1. For each bootstrap sample:
-   a. Resample original dataset with replacement
-   b. Standardize using original μ and σ  
-   c. Calculate accuracy with trained model
-   d. Store accuracy value
-
-2. Sort accuracies ascending
-3. Extract 2.5% and 97.5% percentiles  
-4. Return distribution + confidence interval
-```
+**Implementation**: 
+- Inlined utility functions (no ES module imports in workers)
+- Handles training, repeat training, and bootstrap sampling
+- Progress reporting via postMessage
+- Deterministic results with seeded random number generation
 
 ---
 
-## 🔄 Data Flow Architecture
+## 🔄 Data Flow
 
-### Application State Flow
+### Application Flow
 ```
-User Input (ControlPanel)
-    ↓
-App.tsx State Updates
-    ↓
-Dataset Generation (utils/dataGenerator)
-    ↓
-Training Request (hooks/useTrainingWorker)
-    ↓
-Web Worker Processing (public/training-worker.js)
-    ↓
-Model State Updates (App.tsx)
-    ↓
-Visualization Updates (PlotCanvas, StatsPanel, etc.)
+User Input → App State → Data Generation → Worker Training → Model Updates → Visualization
 ```
 
 ### Training Pipeline
 ```
-Raw DataPoints 
-    → standardizeFeatures() 
-    → trainValSplit() 
-    → pointsToArrays()
-    → trainLogisticRegression()
-    → ModelState
+DataPoints → standardizeFeatures() → trainValSplit() → trainLogisticRegression() → ModelState
 ```
 
-### Uncertainty Analysis Pipeline
+### Uncertainty Pipeline
 ```
-Original Dataset + Trained Model
-    ↓
-Repeat Training: Multiple bootstrap datasets → Multiple ModelStates
-    ↓  
-Bootstrap Sampling: Resampled datasets → Accuracy distribution
-    ↓
-Statistical Analysis: Percentile CI + Mean/Std calculation
+Dataset + Model → Repeat Training → Multiple Boundaries + Bootstrap Sampling → Confidence Intervals
 ```
 
 ---
 
-## 🎓 Educational Value & Use Cases
-
-### Core Learning Objectives
-1. **Bias-Variance Tradeoff**: Visual demonstration through uncertainty bounds
-2. **Regularization Effects**: λ parameter impact on model complexity
-3. **Sample Size Impact**: How dataset size affects model stability  
-4. **Distribution Sensitivity**: Linear vs non-linear separability
-5. **Statistical Uncertainty**: Bootstrap confidence intervals
-
-### Classroom Integration
-- **Interactive Demonstrations**: Real-time parameter exploration
-- **Homework Assignments**: Share specific configurations via URLs
-- **Research Projects**: Export configurations for reproducible experiments
-- **Self-Study Tool**: Guided experimentation with interpretation tips
-
-### Advanced Features for Educators
-- **Preset Scenarios**: Quick setup for common demonstrations
-- **Shareable URLs**: Exact configuration reproduction
-- **Visual Comparisons**: Side-by-side uncertainty visualization
-- **Statistical Rigor**: Proper confidence interval methodology
-
----
-
-## 🚀 Performance Considerations
+## 🚀 Performance & Constraints
 
 ### Optimization Strategies
-1. **Canvas Rendering**: High-performance 2D graphics over SVG/HTML
-2. **Web Workers**: Background processing prevents UI blocking
-3. **Efficient Algorithms**: Numerically stable implementations
-4. **Memory Management**: Float32Array for reduced memory footprint
-5. **Selective Updates**: Only redraw when necessary
+- **Canvas Rendering**: High-performance 2D graphics
+- **Web Workers**: Non-blocking background computation
+- **Float32Array**: Memory-efficient numeric arrays
+- **Efficient Algorithms**: Numerically stable implementations
 
-### Scalability Limits
-- **Dataset Size**: Optimized for 50-1000 points (educational scale)
-- **Training Epochs**: Reasonable limits (50-200) for responsiveness
-- **Bootstrap Samples**: 100-1000 range for statistical validity
-- **Uncertainty Runs**: 5-30 models for variance visualization
+### Scale Limitations
+- **Dataset Size**: 50-1000 points (UI performance constraint)
+- **Training Epochs**: 50-200 (responsiveness vs convergence)
+- **Bootstrap Samples**: 100-1000 (statistical vs computational trade-off)
+- **Uncertainty Runs**: 5-30 models (visualization clarity)
 
-### Browser Compatibility
-- **ES2017+ Features**: Modern JavaScript for performance
-- **Canvas 2D Support**: Universal across modern browsers  
-- **Web Workers**: Background processing capability
-- **Clipboard API**: Share functionality with fallbacks
+### Browser Requirements
+- ES2017+ JavaScript support
+- Canvas 2D API
+- Web Workers
+- Modern browser performance characteristics
 
 ---
 
-## 🔧 Development Workflow
+## 🔧 Development Setup
 
-### Getting Started
+### Commands
 ```bash
-# Install dependencies
-npm install
-
-# Start development server  
-npm start        # → http://localhost:3000
-
-# Production build
-npm run build    # → optimized build/ directory
+npm install          # Install dependencies
+npm start           # Development server (localhost:3000)
+npm run build       # Production build
+npx tsc --noEmit    # Type checking
 ```
 
-### Key Development Commands
-```bash
-# Type checking
-npx tsc --noEmit
-
-# Tailwind class scanning
-npx tailwindcss -i ./src/index.css -o ./dist/output.css --watch
-
-# React development tools
-# Install React DevTools browser extension for component inspection
-```
-
-### Code Organization Principles
-1. **Component Separation**: UI components focus only on presentation
-2. **Algorithm Isolation**: Pure functions in utils/ for testability
-3. **Type Safety**: Comprehensive TypeScript interfaces
-4. **Performance First**: Canvas over DOM manipulation for visualizations
-5. **Educational Focus**: Clear naming and extensive documentation
+### Code Organization
+- **Component Separation**: UI components handle presentation only
+- **Algorithm Isolation**: Pure functions in utils/ for testability
+- **Type Safety**: Comprehensive TypeScript interfaces
+- **Performance**: Canvas over DOM for visualizations
 
 ---
 
-## 🐛 Common Issues & Solutions
-
-### Performance Issues
-- **Slow Training**: Reduce epochs or use Web Worker cancellation
-- **UI Lag**: Ensure computations are in Web Worker, not main thread
-- **Memory Usage**: Monitor large datasets; current limits are educational-scale
-
-### Browser Compatibility
-- **Canvas Issues**: Ensure 2D context availability
-- **Web Worker Errors**: Check console for import/syntax errors
-- **Clipboard Fallbacks**: Share URL functionality has manual fallback
-
-### Educational Troubleshooting
-- **Confusing Results**: Use presets to demonstrate clear scenarios
-- **Reproducibility**: Always check seed locking for consistent results
-- **Interpretation**: Refer to built-in "What to Notice" guidance
-
----
-
-## 📚 Further Reading & Extensions
-
-### Potential Enhancements
-1. **Additional Algorithms**: SVM, Neural Networks, Decision Trees
-2. **More Distributions**: Circles, Spirals, Real datasets
-3. **Advanced Visualizations**: Learning curves, ROC curves
-4. **Export Functionality**: Save plots and data as images/CSV
-5. **Collaborative Features**: Share live sessions between users
-
-### Educational Extensions  
-1. **Guided Tutorials**: Step-by-step interactive lessons
-2. **Assessment Integration**: Quiz questions based on configurations
-3. **Comparison Mode**: Side-by-side parameter exploration
-4. **Real Dataset Upload**: CSV import for real-world examples
-
-### Technical Improvements
-1. **Testing Suite**: Unit tests for algorithms and components
-2. **Accessibility**: ARIA labels, keyboard navigation
-3. **Internationalization**: Multi-language support
-4. **PWA Features**: Offline functionality, app installation
-
----
-
-This documentation provides a comprehensive guide for developers to understand, maintain, and extend the StatML Lab application. Each file serves a specific purpose in creating an educational tool that effectively demonstrates fundamental machine learning concepts through interactive visualization.
+This documentation provides technical details for developers working with the StatML Lab codebase. The application demonstrates logistic regression training through interactive visualization with proper numerical stability and performance considerations.

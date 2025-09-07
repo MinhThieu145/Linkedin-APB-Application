@@ -8,6 +8,7 @@ import { HelpTooltip, AppOverviewHelp } from './components/HelpTooltip';
 import { generateData, GeneratorConfig } from './utils/dataGenerator';
 import { ModelConfig, ModelState } from './utils/logisticRegression';
 import { useTrainingWorker } from './hooks/useTrainingWorker';
+import { DEMO_CONFIG, DEMO_MODEL_RESULT, DEMO_UNCERTAINTY_BOUNDS, DEMO_BOOTSTRAP_ACCURACIES, DEMO_CONFIDENCE_INTERVAL } from './utils/presets';
 
 // Default configurations
 const DEFAULT_DATA_CONFIG: GeneratorConfig = {
@@ -42,6 +43,7 @@ function App() {
   const [uncertaintyBounds, setUncertaintyBounds] = useState<Float32Array[]>([]);
   const [bootstrapAccuracies, setBootstrapAccuracies] = useState<number[]>([]);
   const [confidenceInterval, setConfidenceInterval] = useState<[number, number] | undefined>();
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   // Generate dataset
   const dataset = useMemo(() => generateData(dataConfig), [dataConfig]);
@@ -86,6 +88,7 @@ function App() {
     setUncertaintyBounds([]);
     setBootstrapAccuracies([]);
     setConfidenceInterval(undefined);
+    setIsDemoMode(false);
   }, []);
 
   const handleModelConfigChange = useCallback((config: Partial<ModelConfig>) => {
@@ -145,6 +148,35 @@ function App() {
     );
   }, [model, dataset.points, modelConfig, uncertaintyConfig, dataConfig.seed, trainingWorker]);
 
+  // Demo handlers
+  const handleTrainingDemo = useCallback(() => {
+    // Update configurations to demo settings
+    setDataConfig(DEMO_CONFIG.dataConfig);
+    setModelConfig(DEMO_CONFIG.modelConfig);
+    
+    // Set demo results immediately
+    setModel(DEMO_MODEL_RESULT);
+    setIsDemoMode(true);
+    setIsTraining(false);
+    
+    // Clear uncertainty results
+    setUncertaintyBounds([]);
+    setBootstrapAccuracies([]);
+    setConfidenceInterval(undefined);
+  }, []);
+
+  const handleUncertaintyDemo = useCallback(() => {
+    // First ensure we have demo training results
+    if (!isDemoMode || !model) {
+      handleTrainingDemo();
+    }
+    
+    // Set demo uncertainty results immediately
+    setUncertaintyBounds(DEMO_UNCERTAINTY_BOUNDS);
+    setBootstrapAccuracies(DEMO_BOOTSTRAP_ACCURACIES);
+    setConfidenceInterval(DEMO_CONFIDENCE_INTERVAL);
+  }, [isDemoMode, model, handleTrainingDemo]);
+
   const handleApplyPreset = useCallback((dataConfigUpdate: Partial<GeneratorConfig>, modelConfigUpdate: Partial<ModelConfig>) => {
     setDataConfig(prev => ({ ...prev, ...dataConfigUpdate }));
     setModelConfig(prev => ({ ...prev, ...modelConfigUpdate }));
@@ -153,6 +185,7 @@ function App() {
     setUncertaintyBounds([]);
     setBootstrapAccuracies([]);
     setConfidenceInterval(undefined);
+    setIsDemoMode(false);
   }, []);
 
   // Calculate uncertainty statistics
@@ -175,12 +208,18 @@ function App() {
   return (
     <div className="h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
       {/* App Overview Help - Top Right Corner */}
-      <div className="absolute top-4 right-4 z-50">
+      <div className="absolute top-4 right-4 z-50 flex flex-col items-end gap-2">
         <HelpTooltip
           title="📚 StatML Lab Guide"
           content={<AppOverviewHelp />}
           size="lg"
         />
+        {/* Demo Mode Indicator */}
+        {isDemoMode && (
+          <div className="bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-medium shadow-lg">
+            📋 Demo Mode
+          </div>
+        )}
       </div>
       
       <div className="grid h-full grid-cols-[360px_1fr] gap-4 p-4">
@@ -198,6 +237,8 @@ function App() {
           onReset={handleReset}
           onRunUncertainty={handleRunUncertainty}
           onApplyPreset={handleApplyPreset}
+          onTrainingDemo={handleTrainingDemo}
+          onUncertaintyDemo={handleUncertaintyDemo}
           isTraining={isTraining}
           canTrain={canTrain}
         />
