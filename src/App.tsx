@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { ControlPanel } from './components/ControlPanel';
 import { PlotCanvas } from './components/PlotCanvas';
 import { LossSparkline } from './components/LossSparkline';
