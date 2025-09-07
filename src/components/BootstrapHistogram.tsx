@@ -1,18 +1,20 @@
 import React, { useRef, useEffect } from 'react';
-import { HelpTooltip } from './HelpTooltip';
+import { HelpTooltip, AITooltip, BootstrapAIAnalysis } from './HelpTooltip';
 
 interface BootstrapHistogramProps {
   accuracies: number[];
   width: number;
   height: number;
   confidenceInterval?: [number, number];
+  isDemoMode?: boolean;
 }
 
 export const BootstrapHistogram: React.FC<BootstrapHistogramProps> = ({
   accuracies,
   width,
   height,
-  confidenceInterval
+  confidenceInterval,
+  isDemoMode = false
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -193,6 +195,13 @@ export const BootstrapHistogram: React.FC<BootstrapHistogramProps> = ({
           title="🔄 Bootstrap Uncertainty"
           content={bootstrapHelp}
           size="lg"
+        />
+        <AITooltip
+          title="AI Bootstrap Analysis"
+          content={<BootstrapAIAnalysis isDemoMode={isDemoMode} />}
+          size="lg"
+          isDemoMode={isDemoMode}
+          show={accuracies.length > 0}
         />
       </div>
       <canvas

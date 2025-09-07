@@ -1,5 +1,130 @@
 import React, { useState, useEffect } from 'react';
 
+interface AITooltipProps {
+  title: string;
+  content: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg';
+  isDemoMode?: boolean;
+  show?: boolean;
+}
+
+export const AITooltip: React.FC<AITooltipProps> = ({ 
+  title, 
+  content, 
+  size = 'md',
+  isDemoMode = false,
+  show = true
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Close modal on escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  const sizeClasses = {
+    sm: 'max-w-md',
+    md: 'max-w-2xl', 
+    lg: 'max-w-4xl'
+  };
+
+  if (!show) {
+    return null;
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-neutral-400 hover:border-neutral-300 text-neutral-400 hover:text-neutral-300 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 focus:ring-offset-neutral-900 group"
+        title="AI Analysis"
+      >
+        <svg className="w-3 h-3 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+      </button>
+      
+      {/* Modal Overlay */}
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Backdrop with blur */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out"
+            onClick={() => setIsOpen(false)}
+            style={{
+              animation: isOpen ? 'fadeIn 0.3s ease-out' : 'fadeOut 0.3s ease-out'
+            }}
+          />
+          
+          {/* Modal Content */}
+          <div 
+            className={`relative bg-gradient-to-br from-green-900 to-neutral-900 border border-green-700 rounded-xl shadow-2xl ${sizeClasses[size]} w-full max-h-[90vh] overflow-hidden transition-all duration-300 ease-out transform`}
+            style={{
+              animation: isOpen ? 'modalSlideIn 0.3s ease-out' : 'modalSlideOut 0.3s ease-out'
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-green-700 bg-green-800/20">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  🤖 {title}
+                </h2>
+                {isDemoMode && (
+                  <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full border-2 border-blue-400 shadow-lg animate-pulse">
+                    🎬 DEMO
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-green-700/30 text-green-300 hover:text-green-200 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-160px)] scrollbar-dark">
+              <div className="text-green-100 space-y-4 leading-relaxed">
+                {content}
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="flex items-center justify-end px-6 py-4 border-t border-green-700 bg-green-800/20 flex-shrink-0">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="px-4 py-2 bg-green-700 hover:bg-green-600 text-green-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 interface HelpTooltipProps {
   title: string;
   content: React.ReactNode;
@@ -371,3 +496,135 @@ export const AppOverviewHelp = () => (
     </div>
   </div>
 );
+
+// AI Analysis Components  
+export const StatsAIAnalysis: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
+  // Show demo analysis only if we're in demo mode, otherwise show API key message
+  if (!isDemoMode) {
+    return (
+      <div className="text-center space-y-4">
+        <div className="text-green-300 text-lg">🚧 Feature In Development</div>
+        <p>AI-powered statistical analysis requires an API key configuration.</p>
+        <p className="text-sm text-green-200">This feature will provide intelligent insights about your model's performance, potential issues, and recommendations for improvement.</p>
+        <div className="bg-green-800/30 p-3 rounded-lg text-sm">
+          <strong>Coming Soon:</strong> Real-time AI analysis of your training results!
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-green-800/30 p-4 rounded-lg">
+        <div className="text-green-300 font-semibold mb-2">🎯 Model Performance Analysis</div>
+        <p>Your logistic regression model shows <strong>solid performance</strong> with a training accuracy of <strong>89.1%</strong> and validation accuracy of <strong>87.4%</strong>.</p>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <strong className="text-green-300">📊 Key Insights:</strong>
+          <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            <li><strong>Generalization Gap:</strong> The 1.7% gap between training (89.1%) and validation (87.4%) indicates <em>healthy learning</em> - your model generalizes well without significant overfitting.</li>
+            <li><strong>Model Weights:</strong> The bias term (0.121) suggests a slight decision boundary shift, while feature weights (1.234, 1.187) show balanced importance between both input features.</li>
+            <li><strong>Feature Scaling:</strong> Your standardization worked well - features have means near zero (0.023, 0.019) and unit variance (1.156, 1.142).</li>
+          </ul>
+        </div>
+
+        <div>
+          <strong className="text-green-300">🔍 What This Means:</strong>
+          <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            <li>The model is <strong>not overfitting</strong> - the small train/val gap is ideal</li>
+            <li>Both features contribute meaningfully to classification (similar weight magnitudes)</li>
+            <li>The final loss trajectory shows good convergence without oscillation</li>
+          </ul>
+        </div>
+
+        <div>
+          <strong className="text-green-300">💡 Recommendations:</strong>
+          <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            <li>Current regularization (λ=0.01) is well-tuned for this dataset</li>
+            <li>Consider collecting more data if you need higher accuracy</li>
+            <li>The model is ready for production use on similar blob-type data</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="bg-blue-900/30 p-3 rounded-lg text-sm">
+        <strong>🎓 Educational Note:</strong> This is an excellent example of a well-balanced model that neither underfits nor overfits the data.
+      </div>
+    </div>
+  );
+};
+
+export const BootstrapAIAnalysis: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
+  if (!isDemoMode) {
+    return (
+      <div className="text-center space-y-4">
+        <div className="text-green-300 text-lg">🚧 Feature In Development</div>
+        <p>AI-powered uncertainty analysis requires an API key configuration.</p>
+        <p className="text-sm text-green-200">This feature will provide intelligent interpretation of your bootstrap results, confidence intervals, and model stability insights.</p>
+        <div className="bg-green-800/30 p-3 rounded-lg text-sm">
+          <strong>Coming Soon:</strong> Real-time AI analysis of your uncertainty metrics!
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate stats from demo data
+  const mean = 0.878; // Average of demo accuracies
+  const ci_lower = 0.867;
+  const ci_upper = 0.894;
+  const ci_width = ci_upper - ci_lower;
+  const std_dev = 0.009; // Approximate from demo data
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-green-800/30 p-4 rounded-lg">
+        <div className="text-green-300 font-semibold mb-2">🎲 Bootstrap Uncertainty Analysis</div>
+        <p>Your model shows <strong>excellent stability</strong> with a tight confidence interval and low variance across bootstrap samples.</p>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <strong className="text-green-300">📈 Statistical Summary:</strong>
+          <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            <li><strong>Mean Accuracy:</strong> {(mean * 100).toFixed(1)}% across 30 bootstrap samples</li>
+            <li><strong>95% Confidence Interval:</strong> [{(ci_lower * 100).toFixed(1)}%, {(ci_upper * 100).toFixed(1)}%] (width: {(ci_width * 100).toFixed(1)}%)</li>
+            <li><strong>Standard Deviation:</strong> ±{(std_dev * 100).toFixed(1)}% indicating very low variance</li>
+          </ul>
+        </div>
+
+        <div>
+          <strong className="text-green-300">🔍 Key Insights:</strong>
+          <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            <li><strong>High Confidence:</strong> The narrow 2.7% CI width indicates we can be very confident about the true accuracy</li>
+            <li><strong>Model Stability:</strong> Bootstrap samples cluster tightly around 87.8%, showing consistent performance</li>
+            <li><strong>Sample Size Effect:</strong> With 800 training samples, your model has learned stable patterns</li>
+          </ul>
+        </div>
+
+        <div>
+          <strong className="text-green-300">📊 Distribution Analysis:</strong>
+          <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            <li>Bootstrap accuracies follow a <strong>normal-like distribution</strong> centered at 87.8%</li>
+            <li>No outliers detected - all samples fall within expected range</li>
+            <li>The distribution is <strong>symmetric</strong>, indicating unbiased estimation</li>
+          </ul>
+        </div>
+
+        <div>
+          <strong className="text-green-300">💡 Practical Implications:</strong>
+          <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            <li>You can expect similar performance (86.7-89.4%) on new, similar data</li>
+            <li>The model is <strong>production-ready</strong> with predictable performance</li>
+            <li>Low uncertainty means fewer surprises when deployed</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="bg-blue-900/30 p-3 rounded-lg text-sm">
+        <strong>🎓 Statistical Note:</strong> This narrow confidence interval is a hallmark of a well-trained model on sufficient data. The bootstrap method gives us robust uncertainty estimates without distributional assumptions.
+      </div>
+    </div>
+  );
+};

@@ -336,6 +336,7 @@ function App() {
                   width={380} // Fixed width that fits well
                   height={220}
                   confidenceInterval={confidenceInterval}
+                  isDemoMode={isDemoMode}
                 />
               ) : (
                 <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg h-full flex items-center justify-center">
@@ -352,6 +353,7 @@ function App() {
                 model={model}
                 datasetSize={dataset.points.length}
                 uncertaintyStats={uncertaintyStats}
+                isDemoMode={isDemoMode}
               />
             </div>
           </div>

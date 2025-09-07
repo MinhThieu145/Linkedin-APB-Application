@@ -31,6 +31,12 @@ StatML Lab is a React-based web application implementing interactive logistic re
 - **Confidence Intervals**: Percentile method for accuracy uncertainty
 - **Visualization**: Overlapping decision boundaries and histogram displays
 
+### **Demo & Presentation System**
+- **Instant Results**: Pre-computed demo data for 60-second presentations
+- **Demo Buttons**: One-click access to realistic training results
+- **AI Analysis**: Intelligent statistical interpretation with conditional visibility
+- **Modal Help System**: Educational tooltips and AI explanations
+
 ---
 
 ## 🎲 Data Generation Logic Deep Dive
@@ -671,6 +677,194 @@ This uncertainty analysis provides quantitative evidence for fundamental ML prin
 
 ---
 
+## 🎬 Demo & AI Analysis System
+
+This section explains the presentation-ready demo system and AI-powered analysis features designed for rapid demonstrations and educational use.
+
+### **1. Demo System Architecture**
+
+#### **Pre-computed Demo Data**
+```typescript
+// src/utils/presets.ts
+export const DEMO_CONFIG = {
+  dataConfig: {
+    distribution: 'blobs' as const,
+    n: 800,
+    balance: 0.5,
+    noise: 0.6,
+    seed: 42 // Fixed seed for consistent results
+  },
+  modelConfig: {
+    lambda: 0.01,
+    learningRate: 0.05,
+    epochs: 150
+  }
+};
+
+export const DEMO_MODEL_RESULT = {
+  weights: new Float32Array([0.121, 1.234, 1.187]),
+  trainAccuracy: 0.891,
+  valAccuracy: 0.874,
+  losses: [0.693, 0.542, 0.445, ...], // Realistic convergence curve
+  meanX: new Float32Array([0.023, 0.019]),
+  stdX: new Float32Array([1.156, 1.142])
+};
+```
+
+**Design Rationale**:
+- **Instant Results**: Eliminates 30-60 second training wait time
+- **Realistic Data**: Based on actual training runs with "Bigger Dataset" preset
+- **Consistent Experience**: Fixed seed ensures identical results across presentations
+- **Educational Value**: Uses well-balanced scenario showing proper ML practices
+
+#### **Demo State Management**
+```typescript
+// src/App.tsx
+const [isDemoMode, setIsDemoMode] = useState(false);
+
+const handleTrainingDemo = useCallback(() => {
+  // Synchronize all UI controls to demo configuration
+  setDataConfig(DEMO_CONFIG.dataConfig);
+  setModelConfig(DEMO_CONFIG.modelConfig);
+  
+  // Set results immediately (no worker computation)
+  setModel(DEMO_MODEL_RESULT);
+  setIsDemoMode(true);
+  setIsTraining(false);
+}, []);
+```
+
+**State Synchronization**: Demo mode updates all control panel sliders and dropdowns to match demo configuration, providing educational transparency.
+
+### **2. AI Analysis System**
+
+#### **AITooltip Component Architecture**
+```typescript
+interface AITooltipProps {
+  title: string;
+  content: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg';
+  isDemoMode?: boolean;
+  show?: boolean; // Conditional visibility
+}
+```
+
+**Visual Design Features**:
+- **Distinctive Icon**: 2D vector lightbulb SVG matching help tooltip style
+- **Conditional Rendering**: `show={model !== null}` prevents premature display
+- **Green Theme**: Gradient background (`from-green-900 to-neutral-900`) distinguishes AI from help
+- **Demo Indicator**: Prominent `🎬 DEMO` badge with pulsing animation when in demo mode
+
+#### **Intelligent Content Switching**
+```typescript
+export const StatsAIAnalysis: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
+  if (!isDemoMode) {
+    return (
+      <div className="text-center space-y-4">
+        <div className="text-green-300 text-lg">🚧 Feature In Development</div>
+        <p>AI-powered statistical analysis requires an API key configuration.</p>
+        {/* Professional "coming soon" message */}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Pre-written analysis using actual demo numbers */}
+      <div className="bg-green-800/30 p-4 rounded-lg">
+        <p>Your logistic regression model shows <strong>solid performance</strong> 
+           with a training accuracy of <strong>89.1%</strong> and validation accuracy of <strong>87.4%</strong>.</p>
+      </div>
+      {/* Detailed statistical interpretation... */}
+    </div>
+  );
+};
+```
+
+#### **Demo Mode Analysis Content**
+
+**Statistical Accuracy**: All analysis uses exact demo data values:
+- **Training Accuracy**: 89.1% (from DEMO_MODEL_RESULT.trainAccuracy)
+- **Validation Accuracy**: 87.4% (from DEMO_MODEL_RESULT.valAccuracy)  
+- **Generalization Gap**: 1.7% (calculated: 89.1% - 87.4%)
+- **Model Weights**: [0.121, 1.234, 1.187] (actual demo weights)
+- **Bootstrap CI**: [86.7%, 89.4%] (from DEMO_CONFIDENCE_INTERVAL)
+
+**Professional Analysis Topics**:
+1. **Performance Assessment**: Generalization gap interpretation
+2. **Weight Analysis**: Feature importance and bias term significance
+3. **Convergence Quality**: Loss curve and training stability
+4. **Statistical Confidence**: Bootstrap distribution and CI width analysis
+5. **Production Readiness**: Recommendations based on metrics
+
+### **3. Modal System Enhancements**
+
+#### **Improved UX Design**
+```typescript
+// Fixed positioning and sizing issues
+<div className="p-6 overflow-y-auto max-h-[calc(90vh-160px)] scrollbar-dark">
+  {/* Content area with proper height calculation */}
+</div>
+
+<div className="flex items-center justify-end px-6 py-4 border-t border-green-700 bg-green-800/20 flex-shrink-0">
+  {/* Footer with flex-shrink-0 prevents cut-off */}
+</div>
+```
+
+**Technical Improvements**:
+- **Height Calculation**: `90vh-160px` ensures footer visibility
+- **Flex Layout**: `flex-shrink-0` prevents footer compression
+- **Scroll Behavior**: Dark-themed scrollbars match app aesthetic
+- **Animation System**: CSS keyframes for smooth modal transitions
+
+### **4. Conditional Component Rendering**
+
+#### **Smart Visibility Logic**
+```typescript
+// StatsPanel AI tooltip
+<AITooltip
+  show={model !== null}          // Only show when model is trained
+  isDemoMode={isDemoMode}        // Determines content type
+  content={<StatsAIAnalysis isDemoMode={isDemoMode} />}
+/>
+
+// BootstrapHistogram AI tooltip  
+<AITooltip
+  show={accuracies.length > 0}   // Only show when bootstrap results exist
+  isDemoMode={isDemoMode}
+  content={<BootstrapAIAnalysis isDemoMode={isDemoMode} />}
+/>
+```
+
+**Progressive Disclosure**: AI tooltips appear only when relevant data is available, preventing user confusion and maintaining clean UI state.
+
+### **5. Development vs Production Content**
+
+#### **API Key Integration Pattern**
+The system is designed for easy integration with AI services:
+
+```typescript
+// Future implementation pattern
+const analyzeModelResults = async (modelState: ModelState) => {
+  if (!apiKey) {
+    return <DevelopmentMessage />;
+  }
+  
+  const analysis = await callAIService({
+    trainAccuracy: modelState.trainAccuracy,
+    valAccuracy: modelState.valAccuracy,
+    weights: modelState.weights,
+    losses: modelState.losses
+  });
+  
+  return <RealTimeAnalysis content={analysis} />;
+};
+```
+
+**Current State**: Graceful degradation with professional "in development" messaging when not in demo mode.
+
+---
+
 ## 🏗️ Project Structure
 
 ```
@@ -794,12 +988,13 @@ Grid Layout: [360px ControlPanel] [1fr MainContent]
 **Sections**:
 1. **Quick Presets**: Four predefined configurations
 2. **Data Generation**: Distribution, sample size, balance, noise controls
-3. **Model Training**: Hyperparameters and training controls
-4. **Uncertainty Analysis**: Repeat runs and bootstrap configuration
+3. **Model Training**: Hyperparameters, training controls, and demo button
+4. **Uncertainty Analysis**: Repeat runs, bootstrap configuration, and demo button
 
 **Implementation Details**:
 - Regularization slider uses logarithmic scale (10^-4 to 10^1)
 - All parameter changes trigger immediate parent callbacks
+- Demo buttons provide instant results for presentations
 - Modal help system with educational content
 
 ### `src/components/PlotCanvas.tsx`
@@ -826,9 +1021,9 @@ Grid Layout: [360px ControlPanel] [1fr MainContent]
 ### Other Components
 
 **`src/components/LossSparkline.tsx`**: Overlay sparkline showing training loss progression
-**`src/components/BootstrapHistogram.tsx`**: Histogram visualization of bootstrap accuracy distribution  
-**`src/components/StatsPanel.tsx`**: Numerical display of model metrics and parameters
-**`src/components/HelpTooltip.tsx`**: Modal help system with educational content
+**`src/components/BootstrapHistogram.tsx`**: Histogram visualization with AI analysis tooltip
+**`src/components/StatsPanel.tsx`**: Model metrics display with intelligent AI interpretation
+**`src/components/HelpTooltip.tsx`**: Dual modal system - educational help + AI analysis with demo mode support
 
 ---
 

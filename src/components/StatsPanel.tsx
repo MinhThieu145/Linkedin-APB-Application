@@ -1,6 +1,6 @@
 import React from 'react';
 import { ModelState } from '../utils/logisticRegression';
-import { HelpTooltip } from './HelpTooltip';
+import { HelpTooltip, AITooltip, StatsAIAnalysis } from './HelpTooltip';
 
 interface StatsPanelProps {
   model: ModelState | null;
@@ -10,12 +10,14 @@ interface StatsPanelProps {
     stdAccuracy: number;
     confidenceInterval: [number, number];
   };
+  isDemoMode?: boolean;
 }
 
 export const StatsPanel: React.FC<StatsPanelProps> = ({
   model,
   datasetSize,
-  uncertaintyStats
+  uncertaintyStats,
+  isDemoMode = false
 }) => {
   const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
   const formatNumber = (value: number, decimals: number = 3) => value.toFixed(decimals);
@@ -62,6 +64,13 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
           title="📊 Understanding the Numbers"
           content={statsHelp}
           size="lg"
+        />
+        <AITooltip
+          title="AI Statistical Analysis"
+          content={<StatsAIAnalysis isDemoMode={isDemoMode} />}
+          size="lg"
+          isDemoMode={isDemoMode}
+          show={model !== null}
         />
       </div>
       
